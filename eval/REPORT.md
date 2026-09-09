@@ -34,7 +34,8 @@ a1b4764259e3a0dfc43baa13829da2116204de948f2f6fc203d721ad6a9376a8
 
 ## 云端验证
 
-PR 创建前不预写尚未发生的 GitHub Actions 结果。合并与发布前必须补充实际 PR、跨平台 CI 和 Release 工作流证据。
+- [PR #6](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/pull/6) 的 Windows Python 3.9/3.12、Ubuntu Python 3.9/3.12、macOS Python 3.12 与增强安装包冒烟全部通过。
+- [pull_request CI 34357908577](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/runs/34357908577) 与 [push CI 34357900466](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/runs/34357900466) 共 12 个 checks 全部成功。
 
 ## 未自动化范围
 
