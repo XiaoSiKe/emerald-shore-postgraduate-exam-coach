@@ -4,15 +4,15 @@
 
 ## 自动化结果
 
-- 本地：30 项测试中 29 项通过；仅因主环境未安装可选 `pypdf` 跳过 1 项。该 PDF 文本分支将在 CI 安装 `pypdf` 后完整执行。
-- GitHub Actions：等待 V0.2.0 PR 验证 Windows 3.9/3.12、Ubuntu 3.9/3.12、macOS 3.12。
+- 本地：30 项测试中 29 项通过；仅因主环境未安装可选 `pypdf` 跳过 1 项。该 PDF 文本分支在隔离环境安装 `pypdf` 后单独通过。
+- GitHub Actions：Windows 3.9/3.12、Ubuntu 3.9/3.12、macOS 3.12 全部通过；每个环境安装 `pypdf` 后执行 30 项测试。
 - 发布包：两次构建 SHA-256 一致，ZIP 只有 `emerald-shore-postgraduate-exam-coach/` 一个根目录。
-- 安装冒烟：解压后将验证 `--version`、`init`、`subject add`、`topic add`、`plan`、`weekly`。
+- 安装冒烟：解压后 `--version`、`init`、`subject add`、`topic add`、`plan`、`weekly` 全部通过。
 - 静态行为契约：19/19，通过率 100%；来源、隐私、安全、不承诺、迁移与不泄露答案关键项 10/10。
 - 上游锁定：13 个来源均能按仓库或目标文件 commit 复核，无未解释漂移。
 - 端到端：专题建档、材料绑定、来源题、答题回流、启动协议和周复盘通过；真实 V0.1.0 fixture 迁移后旧目录保留、schema 2 可继续运行。
 
-PR 与主分支 CI 链接将在合并前写回本报告。
+证据：[PR #4](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/pull/4)、[PR CI 34331857669](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/runs/34331857669)、[分支 CI 34331813675](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/runs/34331813675)。GitHub 仓库改名后，旧链接由 GitHub 自动重定向。
 
 ## 修复记录
 
