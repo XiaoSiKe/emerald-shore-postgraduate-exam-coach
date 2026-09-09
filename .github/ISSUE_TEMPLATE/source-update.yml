@@ -1,0 +1,23 @@
+name: Method or source update
+description: 更新学习科学、考试政策或开源来源
+title: "[Source] "
+labels: ["documentation"]
+body:
+  - type: input
+    id: source
+    attributes:
+      label: 来源链接或 DOI
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: 会改变哪条行为规则
+    validations:
+      required: true
+  - type: textarea
+    id: license
+    attributes:
+      label: 许可证与复制边界
+    validations:
+      required: true

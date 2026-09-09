@@ -1,0 +1,19 @@
+"""面向 Agent 调用方的稳定错误类型。"""
+
+
+class QinganError(Exception):
+    def __init__(self, code, message, recovery, details=None):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.recovery = recovery
+        self.details = details or {}
+
+    def as_dict(self):
+        return {
+            "ok": False,
+            "code": self.code,
+            "message": self.message,
+            "recovery": self.recovery,
+            "details": self.details,
+        }

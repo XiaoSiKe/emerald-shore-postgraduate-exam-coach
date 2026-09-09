@@ -1,0 +1,25 @@
+name: Bug report
+description: 报告可复现错误，请勿上传课程版权材料或个人信息
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: command
+    attributes:
+      label: 命令与脱敏输出
+      description: 提供命令和错误 JSON，删除姓名、院校账号、材料正文等信息。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      placeholder: macOS 15 / Python 3.12 / v0.1.0
+    validations:
+      required: true

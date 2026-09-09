@@ -1,0 +1,19 @@
+name: Feature request
+description: 提议一个能改善考研冲刺闭环的功能
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 真实问题
+      description: 谁在什么冲刺场景遇到了什么问题？
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 可观察验收
+      description: 什么行为或结果能证明问题被解决？
+    validations:
+      required: true

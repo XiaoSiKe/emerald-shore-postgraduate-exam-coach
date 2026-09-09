@@ -1,0 +1,52 @@
+{
+  "checked_at": "2026-09-09",
+  "sources": [
+    {
+      "repo": "ZeKaiNie/universal-examprep-skill",
+      "commit": "20ed0633bd4923c516fa482bd0a627c190011381",
+      "license": "MIT"
+    },
+    {
+      "repo": "zgl610329-wq/learn-anything-fast",
+      "commit": "49a6aef010e56da3b873847f872f490d10a483e5",
+      "license": "MIT"
+    },
+    {
+      "repo": "cxs885187-create/--skill",
+      "commit": "aa0467bd848ce40000e0bdd80667d4f24d946bc3",
+      "license": null,
+      "policy": "concept-only-no-copy"
+    },
+    {
+      "repo": "Candlest/exam-prep-skill",
+      "commit": "a6f6aa759c23c153f110053cc41f1bd12881bdd6",
+      "license": "MIT"
+    },
+    {
+      "repo": "lhyvshh/exam-prep-agents-skill",
+      "commit": "0eb7cdd18ca2be8f5038b0540ce7b9e5c62d8357",
+      "license": "MIT"
+    },
+    {
+      "repo": "az9713/learn-anything-skill",
+      "commit": "5566f4376b9a976437835a3da3c8dda8e5c2c363",
+      "license": "MIT"
+    },
+    {
+      "repo": "XiaomiMiMo/MiMo-Code",
+      "commit": "4f44dab00ac2eeae377a0c4000a1cc0987eb3fb6",
+      "path": "packages/opencode/src/skill/builtin/.bundle/learn-everything/SKILL.md",
+      "license": "MIT"
+    },
+    {
+      "repo": "HughYau/qiushi-skill",
+      "commit": "3d36c1471081d0cedce248836522c6e845f9b516",
+      "license": "MIT"
+    },
+    {
+      "repo": "leezythu/maoxuan-skill",
+      "commit": "4376a65020b1fd96af65052ccd30accaddedc3f1",
+      "license": "MIT"
+    }
+  ]
+}
