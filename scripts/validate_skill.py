@@ -50,6 +50,8 @@ def validate(root: Path) -> list[str]:
         "references/coach-orchestration.md",
         "references/campus-life-system.md",
         "references/course-evidence-system.md",
+        "references/efficiency-evaluation.md",
+        "references/communication-style.md",
         "LICENSE",
         "THIRD_PARTY_NOTICES.md",
         "sources.lock.json",
@@ -74,7 +76,12 @@ def validate(root: Path) -> list[str]:
             errors.append(str(exc))
         if "references/coach-orchestration.md" not in text:
             errors.append("SKILL.md 没有路由到教练编排协议")
-        for reference in ("references/campus-life-system.md", "references/course-evidence-system.md"):
+        for reference in (
+            "references/campus-life-system.md",
+            "references/course-evidence-system.md",
+            "references/efficiency-evaluation.md",
+            "references/communication-style.md",
+        ):
             if reference not in text:
                 errors.append(f"SKILL.md 没有路由到 {reference}")
     openai_yaml = root / "agents/openai.yaml"
@@ -101,10 +108,12 @@ def validate(root: Path) -> list[str]:
             "一万年太久，只争朝夕！",
             "这是一个 **Agent Skill**",
             "不是独立 App",
-            "## 🧩 八大系统",
+            "## 🧩 统一系统总览：四层十一系统",
             "references/coach-orchestration.md",
             "references/campus-life-system.md",
             "references/course-evidence-system.md",
+            "references/efficiency-evaluation.md",
+            "references/communication-style.md",
         ):
             if marker not in readme_text:
                 errors.append(f"README.md 缺少 Skill 定位标记：{marker}")

@@ -11,6 +11,9 @@
 - Qiushi Skill 贡献者。
 - maoxuan-skill 贡献者。
 - Mohit Agrawal 及贡献者的 pm-claude-skills。
+- pm-claude-skills 中的 explain-simply 与 feynman-explainer；仅蒸馏分层讲解、类比边界和学生复述机制。
+- LeoYeAI 贡献者的 openclaw-master-skills；仅蒸馏 study-buddy 的本地记录、即时反馈和亲和表达，不采用固定游戏化系统。
+- MengTo/Skills 的 audit-verify-explain-grade-5；仅蒸馏先核验证据再通俗解释的顺序。
 - Open Spaced Repetition 贡献者的 Py-FSRS；仅作调度设计参考。
 - Human Skill Tree 贡献者；只审阅其允许按 MIT 使用的 Skill 材料。
 

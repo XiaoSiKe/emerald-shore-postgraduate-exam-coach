@@ -13,6 +13,7 @@ from .service import (
     add_topic,
     checkpoint,
     drill,
+    efficiency_report,
     ingest,
     init,
     log_task,
@@ -142,6 +143,10 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("plan", "today", "replan", "review", "weekly", "status"):
         command_parser = subparsers.add_parser(name)
         command_parser.add_argument("workspace")
+
+    efficiency_parser = subparsers.add_parser("efficiency", help="按多维证据评估考研学习效率")
+    efficiency_parser.add_argument("workspace")
+    efficiency_parser.add_argument("--days", type=int, default=7)
 
     drill_parser = subparsers.add_parser("drill", help="选择一道不泄露答案的来源题")
     drill_parser.add_argument("workspace")
@@ -284,6 +289,8 @@ def dispatch(args: argparse.Namespace):
         return review(args.workspace)
     if args.command == "weekly":
         return weekly_review(args.workspace)
+    if args.command == "efficiency":
+        return efficiency_report(args.workspace, args.days)
     if args.command == "status":
         return status(args.workspace)
     raise EmeraldError("unknown_command", "未知命令。", "运行 emerald.py --help。")

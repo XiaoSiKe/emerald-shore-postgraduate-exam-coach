@@ -66,6 +66,30 @@
       "license": "MIT"
     },
     {
+      "repo": "mohitagw15856/pm-claude-skills",
+      "commit": "648c57dd75ad081bbb6858af836b937d096456a5",
+      "path": "skills/explain-simply/SKILL.md",
+      "license": "MIT"
+    },
+    {
+      "repo": "mohitagw15856/pm-claude-skills",
+      "commit": "a9668c72e56ce30214dd4a419939b1ca6e7a4d4c",
+      "path": "skills/feynman-explainer/SKILL.md",
+      "license": "MIT"
+    },
+    {
+      "repo": "LeoYeAI/openclaw-master-skills",
+      "commit": "fd6c8c403eba42b1bb765dd79ff2160d2a74eb4f",
+      "path": "skills/study-buddy-ai/SKILL.md",
+      "license": "MIT"
+    },
+    {
+      "repo": "MengTo/Skills",
+      "commit": "a3d017f3cf1b9e04695be434593d66b2ed1ae900",
+      "path": "agent-skills/codex/audit-verify-explain-grade-5/SKILL.md",
+      "license": "MIT"
+    },
+    {
       "repo": "open-spaced-repetition/py-fsrs",
       "commit": "81765cf8eb6ebb422ce36194372074fb0c8a08b2",
       "path": "README.md",
@@ -82,7 +106,13 @@
       "repo": "GarethManning/education-agent-skills",
       "commit": "6bbbce418f82e11044009c9f3b7373a354de5bd0",
       "license": "CC-BY-SA-4.0",
-      "policy": "research-only-no-copy"
+      "policy": "research-only-no-copy",
+      "reviewed_paths": [
+        "skills/student-learning/weekly-agency-review/SKILL.md",
+        "skills/wellbeing-motivation-agency/motivation-diagnostic-task-redesign/SKILL.md",
+        "skills/wellbeing-motivation-agency/self-efficacy-builder-sequence/SKILL.md",
+        "skills/self-regulated-learning/error-analysis-protocol/SKILL.md"
+      ]
     }
   ]
 }

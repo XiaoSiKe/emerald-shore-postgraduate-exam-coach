@@ -110,7 +110,9 @@ class V2FlowTests(unittest.TestCase):
         weekly = weekly_review(str(self.workspace))
         self.assertEqual(weekly["weekly"]["evidence_events"], 1)
         self.assertEqual(weekly["weekly"]["error_counts"]["reasoning"], 1)
+        self.assertEqual(weekly["weekly"]["efficiency"]["diagnosis"], "checkpoint_missing")
         self.assertTrue((self.workspace / ".emerald-shore/weekly.md").exists())
+        self.assertTrue((self.workspace / ".emerald-shore/efficiency.md").exists())
 
     def test_focus_creates_specific_if_then_plan(self):
         plan = make_plan(str(self.workspace))["plan"]

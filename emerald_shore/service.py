@@ -10,7 +10,7 @@ from typing import Any
 from .errors import EmeraldError
 from .materials import ingest_files, iter_material_files
 from .planner import KINDS, build_plan, determine_phase, due_reviews, rank_topics, update_review_item
-from .render import dashboard_markdown, today_markdown, weekly_markdown
+from .render import dashboard_markdown, efficiency_markdown, today_markdown, weekly_markdown
 from .state import (
     STATE_DIR,
     append_jsonl,
@@ -859,6 +859,151 @@ def set_focus(
     )
 
 
+def _dated_rows(rows: list[dict[str, Any]], start: date, end: date) -> list[dict[str, Any]]:
+    result = []
+    for row in rows:
+        try:
+            occurred = datetime.fromisoformat(row["recorded_at"]).date()
+        except (KeyError, TypeError, ValueError):
+            continue
+        if start <= occurred <= end:
+            result.append(row)
+    return result
+
+
+def _efficiency_snapshot(root: Path, days: int) -> dict[str, Any]:
+    end = date.today()
+    start = end - timedelta(days=days - 1)
+    ledger = _dated_rows(read_jsonl(root / "ledger.jsonl"), start, end)
+    mistakes = _dated_rows(read_jsonl(root / "mistakes.jsonl"), start, end)
+    task_rows = [row for row in ledger if row.get("type") == "task"]
+    attempt_rows = [row for row in ledger if row.get("type") == "question-attempt"]
+    checkpoint_rows = [row for row in ledger if row.get("type") == "checkpoint"]
+
+    completed_tasks = sum(1 for row in task_rows if row.get("result") == "complete")
+    completion_rate = completed_tasks / len(task_rows) if task_rows else None
+    outcome_counts = {name: 0 for name in ("correct", "partial", "wrong")}
+    for row in attempt_rows:
+        result = row.get("result")
+        if result in outcome_counts:
+            outcome_counts[result] += 1
+    correct_rate = outcome_counts["correct"] / len(attempt_rows) if attempt_rows else None
+
+    error_counts: dict[str, int] = {}
+    for row in mistakes:
+        key = row.get("error_type") or "knowledge_gap"
+        error_counts[key] = error_counts.get(key, 0) + 1
+    recurring_types = sorted(key for key, count in error_counts.items() if count >= 2)
+
+    subjects = {item["id"]: item["name"] for item in read_json(root / "subjects.json")}
+    checkpoint_groups: dict[str, list[float]] = {}
+    for row in checkpoint_rows:
+        subject_id = row.get("subject_id")
+        score = row.get("normalized_score")
+        if subject_id and isinstance(score, (int, float)):
+            checkpoint_groups.setdefault(subject_id, []).append(float(score))
+    checkpoint_changes = []
+    for subject_id, scores in checkpoint_groups.items():
+        if len(scores) >= 2:
+            checkpoint_changes.append(
+                {
+                    "subject_id": subject_id,
+                    "subject": subjects.get(subject_id, subject_id),
+                    "first": scores[0],
+                    "latest": scores[-1],
+                    "delta_points": round(scores[-1] - scores[0], 2),
+                }
+            )
+
+    evidence_events = len(attempt_rows) + len(checkpoint_rows)
+    if not task_rows and evidence_events == 0:
+        diagnosis = "insufficient_evidence"
+        label = "证据不足，暂不评价效率"
+        explanation = "现在只有感觉，没有足够记录。先完成一次今日任务和一次闭卷或限时检查，再谈效率。"
+        next_action = "执行当前主攻任务并记录结果；不要用‘今天坐了很久’代替训练证据。"
+    elif completion_rate is not None and completion_rate < 0.60:
+        diagnosis = "load_mismatch"
+        label = "计划与现实容量不匹配"
+        explanation = "主要问题不是不够努力，而是计划没有稳定发生。先缩小任务，再判断学习方法。"
+        next_action = "运行 replan，保留一个主攻和必要复习，删除本周最低价值任务。"
+    elif evidence_events == 0:
+        diagnosis = "input_heavy"
+        label = "输入很多，验证太少"
+        explanation = "已有学习记录，但缺少闭卷、来源题或检查点。知识可能只是看着眼熟。"
+        next_action = "把下一次学习改成闭卷提取、来源题或限时输出，并记录结果。"
+    elif len(attempt_rows) >= 3 and correct_rate is not None and correct_rate < 0.50:
+        diagnosis = "accuracy_gap"
+        label = "练习已经发生，但独立正确率偏低"
+        explanation = "继续堆题只会把错误练熟。先定位定义、识别、推理、步骤还是时间压力。"
+        next_action = "暂停扩题，回到第一个重复错因做最小重建，再用替代题复测。"
+    elif recurring_types:
+        diagnosis = "recurring_error"
+        label = "同类错因正在复发"
+        explanation = "错题数量不是核心，重复出现的同类错误才是当前效率漏点。"
+        next_action = f"只处理重复错因：{recurring_types[0]}；修正后安排一次无提示复测。"
+    elif not checkpoint_rows:
+        diagnosis = "checkpoint_missing"
+        label = "日常训练有证据，但缺少阶段检查点"
+        explanation = "局部练习在推进，但还不能判断是否转化成考试表现。"
+        next_action = "为主攻科目安排一次同口径限时检查点，建立可比较基线。"
+    else:
+        diagnosis = "evidence_loop_stable"
+        label = "证据闭环正在稳定运行"
+        explanation = "执行、独立训练和检查点都已发生。接下来关注趋势，不追求把每个数字刷得漂亮。"
+        next_action = "保持当前主攻；下一周只根据检查点变化和重复错因调整策略。"
+
+    return {
+        "schema_version": 2,
+        "generated_at": now_iso(),
+        "days": days,
+        "period": {"start": start.isoformat(), "end": end.isoformat()},
+        "principle": "multi-dimensional-no-composite-score",
+        "execution": {
+            "task_records": len(task_rows),
+            "completed_tasks": completed_tasks,
+            "completion_rate": completion_rate,
+            "planned_minutes": sum(int(row.get("planned_minutes") or 0) for row in task_rows),
+            "actual_task_minutes": sum(int(row.get("actual_minutes") or 0) for row in task_rows),
+        },
+        "evidence": {
+            "verified_events": evidence_events,
+            "question_attempts": len(attempt_rows),
+            "checkpoints": len(checkpoint_rows),
+        },
+        "outcomes": {
+            "attempts": len(attempt_rows),
+            **outcome_counts,
+            "correct_rate": correct_rate,
+        },
+        "errors": {"counts": error_counts, "recurring_types": recurring_types},
+        "checkpoints": {"count": len(checkpoint_rows), "changes": checkpoint_changes},
+        "diagnosis": diagnosis,
+        "diagnosis_label": label,
+        "explanation": explanation,
+        "next_action": next_action,
+    }
+
+
+def efficiency_report(raw_workspace: str, days: int = 7) -> dict[str, Any]:
+    workspace, root = require_workspace(raw_workspace)
+    if days < 1 or days > 90:
+        raise EmeraldError(
+            "invalid_efficiency_window",
+            "效率评估窗口必须在 1–90 天之间。",
+            "使用 --days 7 查看一周，或 --days 30 查看一个月。",
+        )
+    report = _efficiency_snapshot(root, days)
+    atomic_write_text(root / "efficiency.md", efficiency_markdown(report))
+    return _response(
+        "efficiency",
+        workspace,
+        updated_files=[f"{STATE_DIR}/efficiency.md"],
+        summary=f"效率评估完成：{report['diagnosis_label']}。",
+        next_action=report["next_action"],
+        efficiency=report,
+    )
+
+
 def weekly_review(raw_workspace: str) -> dict[str, Any]:
     workspace, root = require_workspace(raw_workspace)
     replanned = make_plan(raw_workspace, "weekly-review")
@@ -891,8 +1036,12 @@ def weekly_review(raw_workspace: str) -> dict[str, Any]:
         decision = "本周缺少闭卷或限时证据：下周减少输入型学习，先安排一次可判定检查点。"
     else:
         decision = "保留当前主攻，用错因和限时结果继续校准；不因单次情绪波动改动全局。"
+    efficiency = _efficiency_snapshot(root, 7)
     focus = read_json(root / "focus.json", {})
-    next_action = focus.get("if_then") or "为今日第一任务运行 focus，设定时间、地点和 5 分钟启动动作。"
+    if efficiency["diagnosis"] == "evidence_loop_stable":
+        next_action = focus.get("if_then") or "保持当前主攻，并为下一次训练设置具体启动条件。"
+    else:
+        next_action = efficiency["next_action"]
     review_payload = {
         "schema_version": 2,
         "generated_at": now_iso(),
@@ -902,16 +1051,22 @@ def weekly_review(raw_workspace: str) -> dict[str, Any]:
         "actual_minutes": sum(int(row.get("actual_minutes") or 0) for row in weekly_ledger),
         "evidence_events": evidence_events,
         "error_counts": error_counts,
+        "efficiency": efficiency,
         "next_main_subject": plan["main_subject_name"],
         "next_main_topic": plan.get("main_topic_name"),
         "decision": decision,
         "next_action": next_action,
     }
     atomic_write_text(root / "weekly.md", weekly_markdown(review_payload))
+    atomic_write_text(root / "efficiency.md", efficiency_markdown(efficiency))
     return _response(
         "weekly",
         workspace,
-        updated_files=list(dict.fromkeys([*replanned["updated_files"], f"{STATE_DIR}/weekly.md"])),
+        updated_files=list(
+            dict.fromkeys(
+                [*replanned["updated_files"], f"{STATE_DIR}/weekly.md", f"{STATE_DIR}/efficiency.md"]
+            )
+        ),
         summary=f"周复盘完成；下周主攻 {plan['main_subject_name']}。",
         next_action=next_action,
         warnings=replanned.get("warnings", []),
@@ -945,6 +1100,7 @@ def status(raw_workspace: str) -> dict[str, Any]:
     focus = read_json(root / "focus.json", {})
     phase = determine_phase(profile["exam_date"])
     adherence = _adherence(ledger)
+    efficiency = _efficiency_snapshot(root, 7)
     warnings = []
     if adherence is not None and adherence < 0.60:
         warnings.append("近 7 天执行率低于 60%；建议缩小任务并运行 replan，不做人格归因。")
@@ -960,6 +1116,8 @@ def status(raw_workspace: str) -> dict[str, Any]:
         main_subject=plan.get("main_subject_name"),
         main_topic=plan.get("main_topic_name"),
         adherence_7d=adherence,
+        efficiency_diagnosis=efficiency["diagnosis"],
+        efficiency_label=efficiency["diagnosis_label"],
         due_review_count=len(due_reviews(queue)),
         source_count=len(sources),
         topic_count=len(topics),

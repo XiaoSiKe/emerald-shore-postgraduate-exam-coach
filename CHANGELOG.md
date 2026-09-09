@@ -2,6 +2,23 @@
 
 所有重要变化遵循语义化版本规则。
 
+## [0.5.0] - 2026-09-09
+
+### 新增
+
+- 新增统一的“四层十一系统”地图，显式拆分哲学思想、效率评估、通俗讲解、自我调节和情绪价值模块。
+- 新增 `efficiency --days 1..90`，按执行、有效证据、独立答题、错因复发和检查点输出多维诊断，不生成综合效率分。
+- 新增 `references/efficiency-evaluation.md` 与 `references/communication-style.md`。
+- 新增自主感、胜任感、关系感和自我效能证据规则，以及亲和幽默的禁用场景。
+
+### 变更
+
+- 哲学策略升级为“调查—矛盾—集中—实践—校正—阶段”闭环，并补充结果检验、控制边界和可证伪计划。
+- 讲解升级为“一句话本质—生活类比—类比边界—考试落点—学生复述”。
+- `weekly` 同时生成多维效率快照与 `.emerald-shore/efficiency.md`。
+- 新增对 explain-simply、feynman-explainer、study-buddy、weekly-agency-review、动机与错误分析 Skill 的许可审计和原创蒸馏。
+- schema 继续保持为 2，V0.2–V0.4 工作区无需迁移。
+
 ## [0.4.0] - 2026-09-09
 
 ### 新增
