@@ -79,7 +79,7 @@ class ServiceFlowTests(unittest.TestCase):
     def test_cli_success_and_error_are_json(self):
         command = [sys.executable, str(ROOT / "qingan.py"), "status", str(self.workspace)]
         success = subprocess.run(command, check=False, capture_output=True, text=True)
-        self.assertEqual(success.returncode, 0)
+        self.assertEqual(success.returncode, 0, success.stderr)
         self.assertTrue(json.loads(success.stdout)["ok"])
         failure = subprocess.run(
             [sys.executable, str(ROOT / "qingan.py"), "today", str(Path(self.temp.name) / "missing")],
