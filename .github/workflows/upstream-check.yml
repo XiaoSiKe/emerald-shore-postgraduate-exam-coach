@@ -1,4 +1,4 @@
-name: Upstream source check
+name: 上游来源检查
 
 on:
   schedule:
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Generate read-only report
+      - name: 生成只读报告
         id: upstream
         continue-on-error: true
         env:
@@ -25,6 +25,6 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: upstream-report
+          name: 上游来源报告
           path: upstream-report.json
           retention-days: 30

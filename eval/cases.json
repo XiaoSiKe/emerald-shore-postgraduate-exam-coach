@@ -112,5 +112,35 @@
     "reference": "references/self-regulated-sprint.md",
     "required_markers": ["if–then", "具体时间/事件和地点", "5 分钟闭卷启动"],
     "critical": false
+  },
+  {
+    "id": "skill-not-app",
+    "reference": "SKILL.md",
+    "required_markers": ["对话驱动的 Agent Skill", "独立 App", "后台调用本地引擎"],
+    "critical": true
+  },
+  {
+    "id": "chinese-default",
+    "reference": "SKILL.md",
+    "required_markers": ["默认使用简洁、自然的中文", "技术标识", "JSON 字段"],
+    "critical": false
+  },
+  {
+    "id": "one-question-intake",
+    "reference": "references/coach-orchestration.md",
+    "required_markers": ["一次问一个", "已有信息不会重复询问", "不要用信息收集拖延训练"],
+    "critical": false
+  },
+  {
+    "id": "translate-engine-output",
+    "reference": "references/coach-orchestration.md",
+    "required_markers": ["当前判断", "完成证据", "完整 JSON 默认隐藏"],
+    "critical": false
+  },
+  {
+    "id": "honest-unpersisted-fallback",
+    "reference": "SKILL.md",
+    "required_markers": ["CLI 不可用", "尚未持久化", "不能假装已经建档"],
+    "critical": true
   }
 ]

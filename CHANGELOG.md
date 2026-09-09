@@ -1,27 +1,41 @@
-# Changelog
+# 变更日志
 
-All notable changes follow semantic versioning.
+所有重要变化遵循语义化版本规则。
+
+## [0.3.0] - 2026-09-09
+
+### 新增
+
+- 新增教练编排协议，明确对话层、证据状态层与反馈层的职责。
+- 增加首次接触、跨会话恢复、状态冲突和本地引擎失败时的处理规则。
+- 静态行为契约增加中文默认、Skill 定位、单问题诊断、结果翻译和未持久化降级检查。
+
+### 变更
+
+- `README.md` 改为中文主文档，并重构为居中品牌区、徽章、图标导航、场景表格、工作流程和折叠式开发者说明。
+- 项目说明、贡献指南、第三方声明、评测输出、GitHub Issue 模板和 Actions 步骤改为中文；技术标识与兼容接口继续保留英文。
+- 明确 `emerald.py` 与 `emerald_shore/` 是 Agent Skill 的本地证据引擎，不是面向学生的独立 App。
 
 ## [0.2.0] - 2026-09-09
 
-### Changed
+### 变更
 
-- Renamed the public Skill, package, CLI, and release identity to Emerald Shore Initiative and removed Pinyin from new technical identifiers.
-- Upgraded workspace state to schema 2 under `.emerald-shore/` with an explicit, non-destructive V0.1 migration.
+- 公开 Skill、Python 包、CLI 与发布标识统一改为 Emerald Shore Initiative，新技术标识不再使用拼音。
+- 工作区状态升级为 `.emerald-shore/` 下的 schema 2，并提供显式、非破坏性的 V0.1 迁移。
 
-### Added
+### 新增
 
-- Topic-level score maps and principal-bottleneck selection inside the main subject.
-- Subject/topic-bound material ingestion, source-grounded `drill`, and evidence-recording `attempt` commands.
-- Weekly self-regulated learning review and concrete if–then `focus` plans.
-- New research distillation from exam planning, self-regulated learning, implementation intentions, and spaced-repetition projects.
+- 科目内专题得分地图与主攻科目中的最小突破口选择。
+- 材料绑定科目/专题、来源题 `drill` 与证据回流 `attempt` 命令。
+- 每周自我调节复盘与具体的 if–then `focus` 启动协议。
+- 对考试规划、自我调节学习、implementation intention 与间隔复习项目的第二轮调研蒸馏。
 
 ## [0.1.0] - 2026-09-09
 
-### Added
+### 新增
 
-- Agent Skill routing for diagnosis, planning, materials, drills, review, replanning, and emotional support.
-- Local Python engine with stable JSON CLI and atomic state updates.
-- Subject-agnostic prioritization, four sprint phases, review queue, mistakes, checkpoints, daily plan, and dashboard.
-- Local extraction for PDF, DOCX, PPTX, TXT, Markdown, and HTML.
-- Source audit, research-backed learning guidance, strategy translation, tests, CI, and release packaging.
+- 覆盖诊断、计划、资料、训练、复习、重排和情绪支持的 Agent Skill 路由。
+- 带稳定 JSON CLI 与原子状态更新的本地 Python 引擎。
+- 科目无关的优先级、四个冲刺阶段、复习队列、错题、检查点、今日计划与仪表盘。
+- PDF、DOCX、PPTX、TXT、Markdown 与 HTML 本地提取。
+- 来源审计、学习科学方法、策略转译、测试、CI 与 Release 打包。

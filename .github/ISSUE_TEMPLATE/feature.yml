@@ -1,6 +1,6 @@
-name: Feature request
+name: 功能建议
 description: 提议一个能改善考研冲刺闭环的功能
-title: "[Feature] "
+title: "[功能] "
 labels: ["enhancement"]
 body:
   - type: textarea

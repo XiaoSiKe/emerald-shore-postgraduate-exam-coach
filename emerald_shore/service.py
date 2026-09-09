@@ -1,4 +1,4 @@
-"""Application services exposed through the CLI."""
+"""通过 CLI 暴露给 Agent Skill 的本地证据服务。"""
 
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ def init(raw_workspace: str, exam_date: str, daily_hours: float, target: str) ->
         "init",
         workspace,
         updated_files=[f"{STATE_DIR}/{name}" for name in created],
-        summary="Emerald Shore Initiative 工作区已初始化。",
+        summary="青岸计划工作区已初始化。",
         next_action="使用 subject add 添加科目与分数基线。",
     )
 

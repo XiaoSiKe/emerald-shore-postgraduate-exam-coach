@@ -1,4 +1,4 @@
-"""Sprint phases, priority, review scheduling, and daily tasks."""
+"""冲刺阶段、优先级、复习调度与今日任务。"""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def determine_phase(exam_date: str, today: date | None = None) -> dict[str, Any]
     for minimum, code, label in PHASES:
         if days >= minimum:
             return {"code": code, "label": label, "days_remaining": days}
-    raise AssertionError("unreachable")
+    raise AssertionError("无法到达的冲刺阶段分支")
 
 
 def stable_id(*parts: str) -> str:

@@ -1,6 +1,6 @@
-name: Bug report
+name: 错误报告
 description: 报告可复现错误，请勿上传课程版权材料或个人信息
-title: "[Bug] "
+title: "[错误] "
 labels: ["bug"]
 body:
   - type: textarea
@@ -20,6 +20,6 @@ body:
     id: environment
     attributes:
       label: 环境
-      placeholder: macOS 15 / Python 3.12 / v0.1.0
+      placeholder: macOS 15 / Python 3.12 / v0.3.0
     validations:
       required: true
