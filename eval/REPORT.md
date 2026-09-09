@@ -31,7 +31,9 @@
 
 ## 云端验证
 
-PR 创建前不预写尚未发生的 GitHub Actions 结果。合并与发布前必须补充实际 PR、跨平台 CI 和 Release 工作流链接。
+- [PR #5](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/pull/5) 的 Windows Python 3.9/3.12、Ubuntu Python 3.9/3.12、macOS Python 3.12 与安装包冒烟全部通过。
+- [pull_request CI 34345766878](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/runs/34345766878) 与 [push CI 34345763148](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/runs/34345763148) 共 12 个 checks 全部成功。
+- 首轮云端测试发现 Windows `cp1252` 无法输出中文帮助与校验信息；修复为显式 UTF-8 后，同一矩阵全部通过。失败没有被隐藏或降级为英文输出。
 
 ## 未自动化范围
 
