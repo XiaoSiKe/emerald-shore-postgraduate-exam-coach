@@ -55,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/emerald-shore-install /tmp/emerald-shore-study
-          unzip -q dist/emerald-shore-postgraduate-exam-coach-v0.4.0.zip -d /tmp/emerald-shore-install
+          unzip -q dist/emerald-shore-postgraduate-exam-coach-v0.5.0.zip -d /tmp/emerald-shore-install
           cd /tmp/emerald-shore-install/emerald-shore-postgraduate-exam-coach
           exam_date=$(date -d "+90 days" +%F)
           python emerald.py --version
@@ -67,4 +67,5 @@ jobs:
           python emerald.py ingest /tmp/emerald-shore-study /tmp/emerald-shore-paper.md --evidence-level target_school_open --classification-confidence high --subject 数学 --topic 微积分 --match-note "示例大学、科目代码 301、公开样题、2025 年"
           python emerald.py plan /tmp/emerald-shore-study
           python emerald.py drill /tmp/emerald-shore-study --subject 数学 --topic 微积分
+          python emerald.py efficiency /tmp/emerald-shore-study --days 7
           python emerald.py weekly /tmp/emerald-shore-study

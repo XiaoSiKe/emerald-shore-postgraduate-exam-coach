@@ -11,9 +11,10 @@
 3. `python scripts/run_static_eval.py`
 4. `python scripts/build_release.py --check`
 5. 使用通用 Agent Skills validator 校验 `SKILL.md` frontmatter、命名和目录结构。
-6. 解压 ZIP 后运行 `--version`、`init --target-school`、`routine set`、`subject add --code`、`topic add --chapter`、目标院校证据 `ingest`、`drill`、`plan`、`weekly` 冒烟流程。
+6. 解压 ZIP 后运行 `--version`、`init --target-school`、`routine set`、`subject add --code`、`topic add --chapter`、目标院校证据 `ingest`、`drill`、`efficiency`、`plan`、`weekly` 冒烟流程。
 7. 用一份真实 V0.1 fixture 运行 `migrate`，确认旧目录保留、schema 2 可继续计划。
 8. 在临时目录验证 Skills CLI 能发现并安装 `emerald-shore-postgraduate-exam-coach`，不得污染维护者的全局 Skill 目录。
+9. Release 资产回下载并通过 SHA-256 后，按用户要求执行全局本地安装；用 `npx skills list -g --json` 和已安装的 `emerald.py --version` 双重确认。
 
 关键行为、安全、隐私、来源诚实必须全部通过；静态行为评测总分至少 90%。未运行真实模型评测时必须在报告中写明，不能把静态检查冒充真实对话结果。
 

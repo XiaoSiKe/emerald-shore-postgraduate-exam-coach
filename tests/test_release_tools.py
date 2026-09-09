@@ -16,7 +16,10 @@ class ReleaseToolTests(unittest.TestCase):
         self.assertIn("一万年太久，只争朝夕！", readme)
         self.assertIn("这是一个 **Agent Skill**", readme)
         self.assertIn("不是独立 App", readme)
-        self.assertIn("## 🧩 八大系统", readme)
+        self.assertIn("## 🧩 统一系统总览：四层十一系统", readme)
+        self.assertIn("哲学思想与考研冲刺策略系统", readme)
+        self.assertIn("考研效率评估系统", readme)
+        self.assertIn("情绪价值、动机与亲和幽默系统", readme)
         self.assertIn("cxs885187-create/--skill", readme)
         self.assertIn("references/coach-orchestration.md", readme)
 
@@ -34,6 +37,7 @@ class ReleaseToolTests(unittest.TestCase):
         self.assertIn("topic", result.stdout)
         self.assertIn("profile", result.stdout)
         self.assertIn("routine", result.stdout)
+        self.assertIn("efficiency", result.stdout)
 
     def test_skill_validator(self):
         result = subprocess.run(
@@ -85,6 +89,14 @@ class ReleaseToolTests(unittest.TestCase):
                 )
                 self.assertIn(
                     "emerald-shore-postgraduate-exam-coach/references/course-evidence-system.md",
+                    archive.namelist(),
+                )
+                self.assertIn(
+                    "emerald-shore-postgraduate-exam-coach/references/efficiency-evaluation.md",
+                    archive.namelist(),
+                )
+                self.assertIn(
+                    "emerald-shore-postgraduate-exam-coach/references/communication-style.md",
                     archive.namelist(),
                 )
                 self.assertFalse(any("tests/" in name or "eval/" in name for name in archive.namelist()))

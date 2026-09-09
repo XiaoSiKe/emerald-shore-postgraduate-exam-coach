@@ -1,7 +1,7 @@
 interface:
   display_name: "青岸计划·考研冲刺教练"
-  short_description: "适配所有学校专业与校园节律的大学生考研冲刺智能教练"
+  short_description: "融合哲学策略、效率评估、通俗讲解与情绪支持的考研冲刺教练"
   brand_color: "#0F766E"
-  default_prompt: "使用 $emerald-shore-postgraduate-exam-coach，根据我的考试日期、目标院校、课表、可用时间、科目与真实材料，用中文带我完成今天的考研冲刺闭环；一次只推进一个关键问题。"
+  default_prompt: "使用 $emerald-shore-postgraduate-exam-coach，根据我的考试日期、目标院校、校园节律和真实训练记录，用通俗、亲和但准确的中文带我诊断主攻与效率；一次只推进一个关键问题。"
 policy:
   allow_implicit_invocation: true

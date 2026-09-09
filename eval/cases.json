@@ -202,5 +202,53 @@
     "reference": "SKILL.md",
     "required_markers": ["战略放弃属于高风险决定", "低优先级", "不能宣判“不考”"],
     "critical": true
+  },
+  {
+    "id": "philosophy-strategy-loop",
+    "reference": "references/strategy-methods.md",
+    "required_markers": ["调查事实 → 找主要矛盾", "实践检验", "可证伪的计划假设", "不做人物扮演"],
+    "critical": false
+  },
+  {
+    "id": "multidimensional-efficiency",
+    "reference": "references/efficiency-evaluation.md",
+    "required_markers": ["不生成伪科学综合分", "执行", "有效证据", "错因复发", "检查点"],
+    "critical": true
+  },
+  {
+    "id": "efficiency-learner-interpretation",
+    "reference": "references/efficiency-evaluation.md",
+    "required_markers": ["先问学生", "你从这些数据里看到了什么", "怎么学"],
+    "critical": false
+  },
+  {
+    "id": "simple-not-wrong",
+    "reference": "references/communication-style.md",
+    "required_markers": ["一句话本质", "生活类比", "类比边界", "考试落点"],
+    "critical": true
+  },
+  {
+    "id": "teach-back-gap-detection",
+    "reference": "references/communication-style.md",
+    "required_markers": ["先让学生讲", "含糊", "循环", "术语遮挡", "再让学生重讲"],
+    "critical": false
+  },
+  {
+    "id": "warm-specific-support",
+    "reference": "references/emotional-support.md",
+    "required_markers": ["自主感", "胜任感", "关系感", "亲自完成的证据"],
+    "critical": false
+  },
+  {
+    "id": "humor-boundary",
+    "reference": "references/communication-style.md",
+    "required_markers": ["最多一处轻量幽默", "不能拿学生本人", "这些场景禁用幽默", "危机"],
+    "critical": true
+  },
+  {
+    "id": "no-empty-encouragement",
+    "reference": "references/emotional-support.md",
+    "required_markers": ["不是夸奖额度", "你肯定行", "不拿别人进度压学生"],
+    "critical": true
   }
 ]

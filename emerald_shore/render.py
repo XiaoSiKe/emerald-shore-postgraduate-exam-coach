@@ -82,6 +82,7 @@ def weekly_markdown(review: dict[str, Any]) -> str:
     adherence_text = "暂无记录" if adherence is None else f"{adherence * 100:.0f}%"
     errors = review.get("error_counts", {})
     error_text = "、".join(f"{key} {value}" for key, value in sorted(errors.items())) or "无记录"
+    efficiency = review.get("efficiency") or {}
     lines = [
         f"# 周复盘 · {review['period']['start']}—{review['period']['end']}",
         "",
@@ -90,6 +91,7 @@ def weekly_markdown(review: dict[str, Any]) -> str:
         f"- 实际分钟：{review['actual_minutes']}",
         f"- 可验证训练次数：{review['evidence_events']}",
         f"- 错因分布：{error_text}",
+        f"- 效率诊断：{efficiency.get('diagnosis_label', '暂无评估')}",
         f"- 下周主要矛盾：{review['next_main_subject']}",
         f"- 下周主攻专题：{review.get('next_main_topic') or '先做诊断'}",
         "",
@@ -100,6 +102,40 @@ def weekly_markdown(review: dict[str, Any]) -> str:
         "## 下一步",
         "",
         review["next_action"],
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def efficiency_markdown(report: dict[str, Any]) -> str:
+    execution = report["execution"]
+    evidence = report["evidence"]
+    outcomes = report["outcomes"]
+    errors = report["errors"]
+    rate = execution.get("completion_rate")
+    rate_text = "暂无记录" if rate is None else f"{rate * 100:.0f}%"
+    correct_rate = outcomes.get("correct_rate")
+    correct_text = "暂无记录" if correct_rate is None else f"{correct_rate * 100:.0f}%"
+    recurring = "、".join(errors.get("recurring_types") or []) or "暂无重复错因"
+    lines = [
+        f"# 考研效率评估 · 最近 {report['days']} 天",
+        "",
+        "> 不给总分。效率不是‘坐了多久’，而是有限时间有没有换来可验证进步。",
+        "",
+        "| 维度 | 观察值 |",
+        "|---|---|",
+        f"| 执行 | {execution['completed_tasks']}/{execution['task_records']} 项完成；执行率 {rate_text} |",
+        f"| 时间 | 计划 {execution['planned_minutes']} 分钟；任务记录 {execution['actual_task_minutes']} 分钟 |",
+        f"| 有效证据 | {evidence['verified_events']} 次闭卷/来源题/检查点 |",
+        f"| 独立答题 | {outcomes['attempts']} 次；正确率 {correct_text} |",
+        f"| 错因复发 | {recurring} |",
+        f"| 检查点 | {report['checkpoints']['count']} 次；可比较趋势 {len(report['checkpoints']['changes'])} 门 |",
+        "",
+        f"**当前诊断：** {report['diagnosis_label']}",
+        "",
+        report["explanation"],
+        "",
+        "**下一步：** " + report["next_action"],
         "",
     ]
     return "\n".join(lines)

@@ -82,7 +82,9 @@ class ServiceFlowTests(unittest.TestCase):
         command = [sys.executable, str(ROOT / "emerald.py"), "status", str(self.workspace)]
         success = subprocess.run(command, check=False, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(success.returncode, 0, success.stderr)
-        self.assertTrue(json.loads(success.stdout)["ok"])
+        success_payload = json.loads(success.stdout)
+        self.assertTrue(success_payload["ok"])
+        self.assertIn("efficiency_diagnosis", success_payload)
         failure = subprocess.run(
             [sys.executable, str(ROOT / "emerald.py"), "today", str(Path(self.temp.name) / "missing")],
             check=False,
