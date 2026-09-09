@@ -1,4 +1,5 @@
 import json
+import io
 import subprocess
 import sys
 import tempfile
@@ -7,6 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from qingan.errors import QinganError
+from qingan.cli import emit_json
 from qingan.service import add_subject, checkpoint, init, log_task, make_plan, status
 from qingan.state import read_json, read_jsonl
 
@@ -94,6 +96,14 @@ class ServiceFlowTests(unittest.TestCase):
 
 
 class ValidationTests(unittest.TestCase):
+    def test_json_output_falls_back_for_ascii_stream(self):
+        buffer = io.BytesIO()
+        stream = io.TextIOWrapper(buffer, encoding="ascii")
+        emit_json({"ok": True, "summary": "青岸计划"}, stream)
+        stream.flush()
+        payload = json.loads(buffer.getvalue().decode("ascii"))
+        self.assertEqual(payload["summary"], "青岸计划")
+
     def test_invalid_init_values(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaises(QinganError) as caught:

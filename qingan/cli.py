@@ -11,6 +11,16 @@ from .errors import QinganError
 from .service import add_subject, checkpoint, ingest, init, log_task, make_plan, review, status, today
 
 
+def emit_json(payload, stream) -> None:
+    text = json.dumps(payload, ensure_ascii=False, indent=2)
+    encoding = getattr(stream, "encoding", None) or "utf-8"
+    try:
+        text.encode(encoding)
+    except (LookupError, UnicodeEncodeError):
+        text = json.dumps(payload, ensure_ascii=True, indent=2)
+    print(text, file=stream)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="qingan.py", description="青岸计划·考研冲刺教练本地效率引擎")
     parser.add_argument("--version", action="version", version=__version__)
@@ -107,10 +117,10 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         payload = dispatch(args)
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        emit_json(payload, sys.stdout)
         return 0
     except QinganError as exc:
-        print(json.dumps(exc.as_dict(), ensure_ascii=False, indent=2), file=sys.stderr)
+        emit_json(exc.as_dict(), sys.stderr)
         return 2
     except Exception as exc:  # 防止 Agent 调用方收到非结构化回溯
         payload = QinganError(
@@ -119,5 +129,5 @@ def main(argv=None) -> int:
             "保留工作区并提交错误信息；不要删除原始材料。",
             {"error": str(exc)},
         ).as_dict()
-        print(json.dumps(payload, ensure_ascii=False, indent=2), file=sys.stderr)
+        emit_json(payload, sys.stderr)
         return 3
