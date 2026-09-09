@@ -4,12 +4,22 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def configure_utf8_stdio() -> None:
+    """让中文评测结果在 Windows 管道与终端中稳定输出。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="backslashreplace")
+
+
 def main() -> int:
+    configure_utf8_stdio()
     cases = json.loads((ROOT / "eval/cases.json").read_text(encoding="utf-8"))
     if len(cases) < 12:
         raise SystemExit("至少需要 12 个行为场景")

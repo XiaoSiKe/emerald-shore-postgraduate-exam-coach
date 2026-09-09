@@ -23,6 +23,7 @@ class ReleaseToolTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            encoding="utf-8",
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("考研突击冲刺 Agent Skill 的本地证据引擎", result.stdout)
@@ -35,6 +36,7 @@ class ReleaseToolTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            encoding="utf-8",
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -44,6 +46,7 @@ class ReleaseToolTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            encoding="utf-8",
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
@@ -59,6 +62,7 @@ class ReleaseToolTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(destination.with_suffix(".zip.sha256").exists())

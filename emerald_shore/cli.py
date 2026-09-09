@@ -28,6 +28,14 @@ from .service import (
 )
 
 
+def configure_utf8_stdio() -> None:
+    """让中文帮助和 JSON 在 Windows 管道与终端中稳定输出。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="backslashreplace")
+
+
 def emit_json(payload, stream) -> None:
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     encoding = getattr(stream, "encoding", None) or "utf-8"
@@ -217,6 +225,7 @@ def dispatch(args: argparse.Namespace):
 
 
 def main(argv=None) -> int:
+    configure_utf8_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

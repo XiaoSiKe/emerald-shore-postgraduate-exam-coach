@@ -15,6 +15,14 @@ COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 EXPECTED_NAME = "emerald-shore-postgraduate-exam-coach"
 
 
+def configure_utf8_stdio() -> None:
+    """让中文校验结果在 Windows 管道与终端中稳定输出。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="backslashreplace")
+
+
 def frontmatter(text: str) -> dict[str, str]:
     if not text.startswith("---\n"):
         raise ValueError("SKILL.md 必须以 YAML frontmatter 开头")
@@ -113,6 +121,7 @@ def validate(root: Path) -> list[str]:
 
 
 def main(argv=None) -> int:
+    configure_utf8_stdio()
     parser = argparse.ArgumentParser()
     parser.add_argument("root", nargs="?", default=".")
     args = parser.parse_args(argv)

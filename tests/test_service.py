@@ -80,7 +80,7 @@ class ServiceFlowTests(unittest.TestCase):
 
     def test_cli_success_and_error_are_json(self):
         command = [sys.executable, str(ROOT / "emerald.py"), "status", str(self.workspace)]
-        success = subprocess.run(command, check=False, capture_output=True, text=True)
+        success = subprocess.run(command, check=False, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(success.returncode, 0, success.stderr)
         self.assertTrue(json.loads(success.stdout)["ok"])
         failure = subprocess.run(
@@ -88,6 +88,7 @@ class ServiceFlowTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            encoding="utf-8",
         )
         self.assertEqual(failure.returncode, 2)
         payload = json.loads(failure.stderr)
