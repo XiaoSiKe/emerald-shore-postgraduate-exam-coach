@@ -55,12 +55,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/emerald-shore-install /tmp/emerald-shore-study
-          unzip -q dist/emerald-shore-postgraduate-exam-coach-v0.3.0.zip -d /tmp/emerald-shore-install
+          unzip -q dist/emerald-shore-postgraduate-exam-coach-v0.4.0.zip -d /tmp/emerald-shore-install
           cd /tmp/emerald-shore-install/emerald-shore-postgraduate-exam-coach
           exam_date=$(date -d "+90 days" +%F)
           python emerald.py --version
-          python emerald.py init /tmp/emerald-shore-study --exam-date "$exam_date" --daily-hours 4
-          python emerald.py subject add /tmp/emerald-shore-study --name 数学 --max-score 150 --baseline 70 --target 110 --kind calculation
-          python emerald.py topic add /tmp/emerald-shore-study --subject 数学 --name 微积分 --weight 3 --mastery 0.3
+          python emerald.py init /tmp/emerald-shore-study --exam-date "$exam_date" --daily-hours 4 --target-school 示例大学 --target-major 计算机科学与技术
+          python emerald.py routine set /tmp/emerald-shore-study --weekday-hours 4 --weekend-hours 8 --sleep-floor-hours 7 --preferred-place 图书馆三楼 --fixed-commitment 周三实验课
+          python emerald.py subject add /tmp/emerald-shore-study --name 数学 --max-score 150 --baseline 70 --target 110 --kind calculation --code 301
+          python emerald.py topic add /tmp/emerald-shore-study --subject 数学 --name 微积分 --chapter 高等数学 --weight 3 --mastery 0.3
+          python -c "from pathlib import Path; Path('/tmp/emerald-shore-paper.md').write_text('第1题 求极限。', encoding='utf-8')"
+          python emerald.py ingest /tmp/emerald-shore-study /tmp/emerald-shore-paper.md --evidence-level target_school_open --classification-confidence high --subject 数学 --topic 微积分 --match-note "示例大学、科目代码 301、公开样题、2025 年"
           python emerald.py plan /tmp/emerald-shore-study
+          python emerald.py drill /tmp/emerald-shore-study --subject 数学 --topic 微积分
           python emerald.py weekly /tmp/emerald-shore-study

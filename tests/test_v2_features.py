@@ -5,6 +5,7 @@ import unittest
 from datetime import date, timedelta
 from pathlib import Path
 
+from emerald_shore.errors import EmeraldError
 from emerald_shore.planner import build_plan, rank_topics
 from emerald_shore.service import (
     add_subject,
@@ -16,6 +17,8 @@ from emerald_shore.service import (
     migrate,
     record_attempt,
     set_focus,
+    set_profile_context,
+    set_routine,
     update_topic,
     weekly_review,
 )
@@ -123,6 +126,100 @@ class V2FlowTests(unittest.TestCase):
         self.assertIn("5 分钟闭卷启动", result["focus"]["if_then"])
         self.assertIn("想刷手机", result["focus"]["coping_plan"])
 
+    def test_campus_routine_supplies_default_focus_place(self):
+        routine = set_routine(
+            str(self.workspace),
+            4,
+            8,
+            7,
+            "图书馆三楼固定座位",
+            ["周三下午实验课", "周五晚社团值班"],
+        )
+        self.assertEqual(routine["routine"]["weekday_hours"], 4)
+        plan = make_plan(str(self.workspace))["plan"]
+        self.assertEqual(plan["day_context"]["preferred_place"], "图书馆三楼固定座位")
+        result = set_focus(
+            str(self.workspace),
+            plan["tasks"][0]["id"],
+            "晚饭后 19:00",
+            None,
+            "想刷手机",
+        )
+        self.assertEqual(result["focus"]["where"], "图书馆三楼固定座位")
+
+    def test_target_school_open_source_requires_match_and_keeps_provenance(self):
+        set_profile_context(str(self.workspace), None, "示例大学", "计算机科学与技术")
+        subject = add_subject(
+            str(self.workspace),
+            "专业课",
+            150,
+            70,
+            115,
+            "understanding",
+            None,
+            "408",
+        )["subject"]
+        topic = add_topic(
+            str(self.workspace),
+            "专业课",
+            "数据结构",
+            4,
+            0.3,
+            0.8,
+            None,
+            "第二章",
+        )["topic"]
+        material = self.root / "target-school-paper.md"
+        material.write_text("第1题 解释时间复杂度。", encoding="utf-8")
+        result = ingest(
+            str(self.workspace),
+            [str(material)],
+            "target_school_open",
+            "专业课",
+            "数据结构",
+            "high",
+            "示例大学、科目代码 408、公开往年题、2025 年",
+        )
+        source = result["added_sources"][0]
+        self.assertEqual(subject["exam_code"], "408")
+        self.assertEqual(topic["chapter"], "第二章")
+        self.assertEqual(source["classification_confidence"], "high")
+        self.assertIn("科目代码 408", source["match_note"])
+
+    def test_target_school_and_low_confidence_evidence_gates(self):
+        material = self.root / "uncertain.md"
+        material.write_text("第1题 解释定义。", encoding="utf-8")
+        with self.assertRaises(EmeraldError) as caught:
+            ingest(
+                str(self.workspace),
+                [str(material)],
+                "user_material",
+                "数学",
+                None,
+                "low",
+            )
+        self.assertEqual(caught.exception.code, "low_confidence_binding")
+        with self.assertRaises(EmeraldError) as caught:
+            ingest(
+                str(self.workspace),
+                [str(material)],
+                "target_school_open",
+                "数学",
+                None,
+                "high",
+                "院校与科目匹配",
+            )
+        self.assertEqual(caught.exception.code, "target_school_required")
+        set_profile_context(str(self.workspace), None, "示例大学", None)
+        with self.assertRaises(EmeraldError) as caught:
+            ingest(
+                str(self.workspace),
+                [str(material)],
+                "target_school_open",
+                "数学",
+            )
+        self.assertEqual(caught.exception.code, "target_school_match_required")
+
     def test_reingest_can_bind_v1_unassigned_questions(self):
         material = self.root / "notes.md"
         material.write_text("第1题 解释定义。", encoding="utf-8")
@@ -160,6 +257,18 @@ class V2FlowTests(unittest.TestCase):
         self.assertEqual(migrated["schema_version"], 2)
         self.assertEqual(migrated["migrated_from"], ".qingan")
         self.assertEqual(read_json(legacy_workspace / ".emerald-shore/topics.json"), [])
+
+    def test_v03_workspace_without_optional_v04_fields_still_plans(self):
+        profile_path = self.workspace / ".emerald-shore/profile.json"
+        profile = read_json(profile_path)
+        profile.pop("routine", None)
+        profile.pop("target_school", None)
+        profile.pop("target_major", None)
+        profile_path.write_text(json.dumps(profile, ensure_ascii=False), encoding="utf-8")
+        result = make_plan(str(self.workspace))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["plan"]["day_context"]["capacity_basis"], "profile-daily-hours")
+        self.assertEqual(result["plan"]["daily_capacity_minutes"], 255)
 
 
 if __name__ == "__main__":

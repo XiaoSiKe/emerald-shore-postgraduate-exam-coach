@@ -137,6 +137,8 @@ def initialize_workspace(
     exam_date: str,
     daily_hours: float,
     target: str = "全国硕士研究生招生考试初试",
+    target_school: str | None = None,
+    target_major: str | None = None,
 ) -> tuple[Path, list[str]]:
     workspace = workspace_path(raw_workspace)
     try:
@@ -176,8 +178,17 @@ def initialize_workspace(
         "exam_date": parsed_date.isoformat(),
         "daily_hours": round(float(daily_hours), 2),
         "target": target.strip() or "全国硕士研究生招生考试初试",
+        "target_school": target_school.strip() if target_school and target_school.strip() else None,
+        "target_major": target_major.strip() if target_major and target_major.strip() else None,
         "buffer_ratio": 0.15,
         "language": "zh-CN",
+        "routine": {
+            "weekday_hours": round(float(daily_hours), 2),
+            "weekend_hours": round(float(daily_hours), 2),
+            "sleep_floor_hours": 7.0,
+            "preferred_place": None,
+            "fixed_commitments": [],
+        },
     }
     try:
         atomic_write_json(temp_root / "profile.json", profile)

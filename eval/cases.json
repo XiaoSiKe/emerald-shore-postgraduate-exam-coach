@@ -142,5 +142,65 @@
     "reference": "SKILL.md",
     "required_markers": ["CLI 不可用", "尚未持久化", "不能假装已经建档"],
     "critical": true
+  },
+  {
+    "id": "campus-rhythm",
+    "reference": "references/campus-life-system.md",
+    "required_markers": ["工作日与周末", "固定安排", "睡眠底线", "routine set"],
+    "critical": false
+  },
+  {
+    "id": "universal-personalized",
+    "reference": "references/campus-life-system.md",
+    "required_markers": ["不预设学校、专业", "应届生、跨考生、二战考生", "不指所有人使用同一计划"],
+    "critical": true
+  },
+  {
+    "id": "course-skeleton",
+    "reference": "references/course-evidence-system.md",
+    "required_markers": ["科目 → 章节 → 专题 → 来源题", "先建课程骨架", "topic add --chapter"],
+    "critical": false
+  },
+  {
+    "id": "confidence-triage",
+    "reference": "references/course-evidence-system.md",
+    "required_markers": ["high", "medium", "low", "保持未绑定"],
+    "critical": true
+  },
+  {
+    "id": "target-school-open-evidence",
+    "reference": "references/course-evidence-system.md",
+    "required_markers": ["target_school_open", "科目名或科目代码", "年份、学期或更新时间", "--match-note"],
+    "critical": true
+  },
+  {
+    "id": "actionable-topic-card",
+    "reference": "references/course-evidence-system.md",
+    "required_markers": ["闭卷写什么", "遇题怎么做", "哪里容易错", "怎样自测"],
+    "critical": false
+  },
+  {
+    "id": "purposeful-visuals",
+    "reference": "references/course-evidence-system.md",
+    "required_markers": ["ASCII", "Mermaid", "纯装饰不算学习产出"],
+    "critical": false
+  },
+  {
+    "id": "self-test-fuse",
+    "reference": "references/course-evidence-system.md",
+    "required_markers": ["连续三次", "停止继续加题", "最小概念", "替代题重新测试"],
+    "critical": true
+  },
+  {
+    "id": "incremental-material-update",
+    "reference": "references/course-evidence-system.md",
+    "required_markers": ["新增、替代、可能重复、待确认", "SHA-256", "不要因为增加一份文件就全量推倒"],
+    "critical": false
+  },
+  {
+    "id": "strategic-abandonment-boundary",
+    "reference": "SKILL.md",
+    "required_markers": ["战略放弃属于高风险决定", "低优先级", "不能宣判“不考”"],
+    "critical": true
   }
 ]

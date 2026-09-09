@@ -21,6 +21,8 @@ from .service import (
     record_attempt,
     review,
     set_focus,
+    set_profile_context,
+    set_routine,
     status,
     today,
     update_topic,
@@ -59,9 +61,29 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--exam-date", required=True)
     init_parser.add_argument("--daily-hours", required=True, type=float)
     init_parser.add_argument("--target", default="全国硕士研究生招生考试初试")
+    init_parser.add_argument("--target-school")
+    init_parser.add_argument("--target-major")
 
     migrate_parser = subparsers.add_parser("migrate", help="从 V0.1 .qingan 工作区无损迁移")
     migrate_parser.add_argument("workspace")
+
+    profile_parser = subparsers.add_parser("profile", help="管理考试目标、院校与专业")
+    profile_sub = profile_parser.add_subparsers(dest="profile_command", required=True)
+    profile_set = profile_sub.add_parser("set", help="更新考试目标、目标院校或目标专业")
+    profile_set.add_argument("workspace")
+    profile_set.add_argument("--target")
+    profile_set.add_argument("--target-school")
+    profile_set.add_argument("--target-major")
+
+    routine_parser = subparsers.add_parser("routine", help="管理工作日、周末与校园生活节律")
+    routine_sub = routine_parser.add_subparsers(dest="routine_command", required=True)
+    routine_set = routine_sub.add_parser("set", help="设置现实可用时间、睡眠底线与学习地点")
+    routine_set.add_argument("workspace")
+    routine_set.add_argument("--weekday-hours", type=float)
+    routine_set.add_argument("--weekend-hours", type=float)
+    routine_set.add_argument("--sleep-floor-hours", type=float)
+    routine_set.add_argument("--preferred-place")
+    routine_set.add_argument("--fixed-commitment", action="append", dest="fixed_commitments")
 
     subject_parser = subparsers.add_parser("subject", help="管理科目")
     subject_sub = subject_parser.add_subparsers(dest="subject_command", required=True)
@@ -77,6 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("memory", "understanding", "calculation", "writing", "language", "timed"),
     )
     subject_add.add_argument("--estimated-hours", type=float)
+    subject_add.add_argument("--code")
 
     topic_parser = subparsers.add_parser("topic", help="管理科目内的高价值专题")
     topic_sub = topic_parser.add_subparsers(dest="topic_command", required=True)
@@ -88,6 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
     topic_add.add_argument("--mastery", required=True, type=float)
     topic_add.add_argument("--confidence", default=0.5, type=float)
     topic_add.add_argument("--estimated-hours", type=float)
+    topic_add.add_argument("--chapter")
     topic_update = topic_sub.add_parser("update", help="更新专题权重、掌握度或证据置信度")
     topic_update.add_argument("workspace")
     topic_update.add_argument("--subject", required=True)
@@ -103,10 +127,17 @@ def build_parser() -> argparse.ArgumentParser:
     ingest_parser.add_argument(
         "--evidence-level",
         default="user_material",
-        choices=("user_material", "past_paper", "official", "external_aid"),
+        choices=("user_material", "past_paper", "official", "target_school_open", "external_aid"),
     )
     ingest_parser.add_argument("--subject")
     ingest_parser.add_argument("--topic")
+    ingest_parser.add_argument(
+        "--classification-confidence",
+        default="high",
+        choices=("high", "medium", "low"),
+    )
+    ingest_parser.add_argument("--match-note")
+    ingest_parser.add_argument("--replace-metadata", action="store_true")
 
     for name in ("plan", "today", "replan", "review", "weekly", "status"):
         command_parser = subparsers.add_parser(name)
@@ -132,7 +163,7 @@ def build_parser() -> argparse.ArgumentParser:
     focus_parser.add_argument("workspace")
     focus_parser.add_argument("--task-id", required=True)
     focus_parser.add_argument("--when", required=True)
-    focus_parser.add_argument("--where", required=True)
+    focus_parser.add_argument("--where")
     focus_parser.add_argument("--obstacle")
 
     log_parser = subparsers.add_parser("log", help="记录任务结果")
@@ -157,9 +188,32 @@ def build_parser() -> argparse.ArgumentParser:
 
 def dispatch(args: argparse.Namespace):
     if args.command == "init":
-        return init(args.workspace, args.exam_date, args.daily_hours, args.target)
+        return init(
+            args.workspace,
+            args.exam_date,
+            args.daily_hours,
+            args.target,
+            args.target_school,
+            args.target_major,
+        )
     if args.command == "migrate":
         return migrate(args.workspace)
+    if args.command == "profile" and args.profile_command == "set":
+        return set_profile_context(
+            args.workspace,
+            args.target,
+            args.target_school,
+            args.target_major,
+        )
+    if args.command == "routine" and args.routine_command == "set":
+        return set_routine(
+            args.workspace,
+            args.weekday_hours,
+            args.weekend_hours,
+            args.sleep_floor_hours,
+            args.preferred_place,
+            args.fixed_commitments,
+        )
     if args.command == "subject" and args.subject_command == "add":
         return add_subject(
             args.workspace,
@@ -169,6 +223,7 @@ def dispatch(args: argparse.Namespace):
             args.target,
             args.kind,
             args.estimated_hours,
+            args.code,
         )
     if args.command == "topic" and args.topic_command == "add":
         return add_topic(
@@ -179,6 +234,7 @@ def dispatch(args: argparse.Namespace):
             args.mastery,
             args.confidence,
             args.estimated_hours,
+            args.chapter,
         )
     if args.command == "topic" and args.topic_command == "update":
         return update_topic(
@@ -191,7 +247,16 @@ def dispatch(args: argparse.Namespace):
             args.estimated_hours,
         )
     if args.command == "ingest":
-        return ingest(args.workspace, args.inputs, args.evidence_level, args.subject, args.topic)
+        return ingest(
+            args.workspace,
+            args.inputs,
+            args.evidence_level,
+            args.subject,
+            args.topic,
+            args.classification_confidence,
+            args.match_note,
+            args.replace_metadata,
+        )
     if args.command == "plan":
         return make_plan(args.workspace, "manual")
     if args.command == "today":

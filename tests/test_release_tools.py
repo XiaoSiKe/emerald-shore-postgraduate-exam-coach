@@ -12,9 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 class ReleaseToolTests(unittest.TestCase):
     def test_primary_documentation_is_chinese_and_skill_first(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("# 🌊 青岸计划", readme)
+        self.assertIn("# 🌊 青岸计划·考研冲刺教练", readme)
+        self.assertIn("一万年太久，只争朝夕！", readme)
         self.assertIn("这是一个 **Agent Skill**", readme)
         self.assertIn("不是独立 App", readme)
+        self.assertIn("## 🧩 八大系统", readme)
+        self.assertIn("cxs885187-create/--skill", readme)
         self.assertIn("references/coach-orchestration.md", readme)
 
     def test_cli_help_is_chinese_and_identifiers_stay_stable(self):
@@ -29,6 +32,8 @@ class ReleaseToolTests(unittest.TestCase):
         self.assertIn("考研突击冲刺 Agent Skill 的本地证据引擎", result.stdout)
         self.assertIn("subject", result.stdout)
         self.assertIn("topic", result.stdout)
+        self.assertIn("profile", result.stdout)
+        self.assertIn("routine", result.stdout)
 
     def test_skill_validator(self):
         result = subprocess.run(
@@ -72,6 +77,14 @@ class ReleaseToolTests(unittest.TestCase):
                 self.assertIn("emerald-shore-postgraduate-exam-coach/SKILL.md", archive.namelist())
                 self.assertIn(
                     "emerald-shore-postgraduate-exam-coach/references/coach-orchestration.md",
+                    archive.namelist(),
+                )
+                self.assertIn(
+                    "emerald-shore-postgraduate-exam-coach/references/campus-life-system.md",
+                    archive.namelist(),
+                )
+                self.assertIn(
+                    "emerald-shore-postgraduate-exam-coach/references/course-evidence-system.md",
                     archive.namelist(),
                 )
                 self.assertFalse(any("tests/" in name or "eval/" in name for name in archive.namelist()))

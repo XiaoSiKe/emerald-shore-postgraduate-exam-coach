@@ -14,7 +14,7 @@
 - Open Spaced Repetition 贡献者的 Py-FSRS；仅作调度设计参考。
 - Human Skill Tree 贡献者；只审阅其允许按 MIT 使用的 Skill 材料。
 
-`cxs885187-create/--skill` 在审阅时没有许可证。本项目未复制其文字、模板或代码，只独立实现了不受版权保护的高层工作流概念。
+`cxs885187-create/--skill` 的 README 声称使用 MIT License，但仓库没有 `LICENSE` 文件，GitHub License API 也无法识别许可证。本项目仅把它作为功能机制和研究问题的重点线索，未复制其文字、示例、模板、目录或代码；单科聚焦、材料分流、课程骨架、目标院校匹配、专题卡、可视化、自测熔断与增量更新均回到原始理论并针对考研独立实现。
 
 `GarethManning/education-agent-skills` 使用 CC BY-SA 4.0。本项目只用它定位自我调节学习研究问题，未复制或改编其中的 Skill 文字、模板、结构或其他可版权化表达；实现独立依据原始研究完成。
 

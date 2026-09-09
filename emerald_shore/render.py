@@ -7,17 +7,24 @@ from typing import Any
 
 def today_markdown(plan: dict[str, Any], subjects: list[dict[str, Any]]) -> str:
     subject_names = {item["id"]: item["name"] for item in subjects}
+    day_context = plan.get("day_context") or {}
+    day_label = "周末" if day_context.get("day_type") == "weekend" else "工作日"
     lines = [
         f"# 今日行动单 · {plan['plan_date']}",
         "",
         f"阶段：**{plan['phase']['label']}**（距考试 {plan['phase']['days_remaining']} 天）",
         f"可安排时间：**{plan['daily_capacity_minutes']} 分钟**（已预留缓冲）",
+        f"校园节律：**{day_label}** · 原始可用 {day_context.get('available_hours', '未设置')} 小时",
         f"本周主攻：**{plan['main_subject_name']}**",
         f"主攻专题：**{plan.get('main_topic_name') or '待诊断'}**",
         "",
         "## 按顺序完成",
         "",
     ]
+    if day_context.get("preferred_place"):
+        lines.insert(6, f"建议地点：**{day_context['preferred_place']}**")
+    if day_context.get("fixed_commitments"):
+        lines.insert(7, f"固定安排（规划时避让）：{'；'.join(day_context['fixed_commitments'])}")
     for task in plan["tasks"]:
         subject = subject_names.get(task.get("subject_id"), "综合复习")
         lines.extend(
@@ -46,6 +53,8 @@ def dashboard_markdown(
         "# 青岸计划仪表盘",
         "",
         f"- 目标：{profile['target']}",
+        f"- 目标院校：{profile.get('target_school') or '尚未设置'}",
+        f"- 目标专业：{profile.get('target_major') or '尚未设置'}",
         f"- 考试日期：{profile['exam_date']}",
         f"- 当前阶段：{plan.get('phase', {}).get('label', '尚未生成计划')}",
         f"- 本周主攻：{plan.get('main_subject_name', '尚未确定')}",

@@ -23,12 +23,14 @@ from .state import (
     read_json,
     read_jsonl,
     require_workspace,
+    update_profile,
 )
 
 ERROR_TYPES = {"knowledge_gap", "reasoning", "procedure", "careless", "time_pressure"}
 RESULTS = {"complete", "partial", "wrong", "skipped"}
 QUESTION_RESULTS = {"correct", "partial", "wrong"}
-EVIDENCE_LEVELS = {"user_material", "past_paper", "official", "external_aid"}
+EVIDENCE_LEVELS = {"user_material", "past_paper", "official", "target_school_open", "external_aid"}
+CLASSIFICATION_CONFIDENCES = {"high", "medium", "low"}
 
 
 def _response(command: str, workspace: Path, **kwargs: Any) -> dict[str, Any]:
@@ -74,8 +76,22 @@ def _find_topic(
     return topic
 
 
-def init(raw_workspace: str, exam_date: str, daily_hours: float, target: str) -> dict[str, Any]:
-    workspace, created = initialize_workspace(raw_workspace, exam_date, daily_hours, target)
+def init(
+    raw_workspace: str,
+    exam_date: str,
+    daily_hours: float,
+    target: str,
+    target_school: str | None = None,
+    target_major: str | None = None,
+) -> dict[str, Any]:
+    workspace, created = initialize_workspace(
+        raw_workspace,
+        exam_date,
+        daily_hours,
+        target,
+        target_school,
+        target_major,
+    )
     return _response(
         "init",
         workspace,
@@ -96,6 +112,91 @@ def migrate(raw_workspace: str) -> dict[str, Any]:
     )
 
 
+def set_routine(
+    raw_workspace: str,
+    weekday_hours: float | None,
+    weekend_hours: float | None,
+    sleep_floor_hours: float | None,
+    preferred_place: str | None,
+    fixed_commitments: list[str] | None,
+) -> dict[str, Any]:
+    workspace, root = require_workspace(raw_workspace)
+    if all(
+        value is None
+        for value in (weekday_hours, weekend_hours, sleep_floor_hours, preferred_place, fixed_commitments)
+    ):
+        raise EmeraldError(
+            "no_routine_changes",
+            "没有提供需要更新的校园节律字段。",
+            "至少提供工作日/周末时间、睡眠底线、常用地点或固定安排之一。",
+        )
+    for label, value in (("工作日", weekday_hours), ("周末", weekend_hours)):
+        if value is not None and (value <= 0 or value > 24):
+            raise EmeraldError(
+                "invalid_routine_hours",
+                f"{label}可用小时必须大于 0 且不超过 24。",
+                "填写扣除上课、通勤、吃饭和睡眠后的现实时间。",
+            )
+    if sleep_floor_hours is not None and (sleep_floor_hours <= 0 or sleep_floor_hours > 24):
+        raise EmeraldError(
+            "invalid_sleep_floor",
+            "睡眠底线必须大于 0 且不超过 24 小时。",
+            "填写你准备长期守住的最低睡眠时长。",
+        )
+    profile = read_json(root / "profile.json")
+    routine = dict(profile.get("routine") or {})
+    if weekday_hours is not None:
+        routine["weekday_hours"] = round(float(weekday_hours), 2)
+    if weekend_hours is not None:
+        routine["weekend_hours"] = round(float(weekend_hours), 2)
+    if sleep_floor_hours is not None:
+        routine["sleep_floor_hours"] = round(float(sleep_floor_hours), 2)
+    if preferred_place is not None:
+        routine["preferred_place"] = preferred_place.strip() or None
+    if fixed_commitments is not None:
+        routine["fixed_commitments"] = [item.strip() for item in fixed_commitments if item.strip()]
+    update_profile(root, {"routine": routine})
+    return _response(
+        "routine set",
+        workspace,
+        updated_files=[f"{STATE_DIR}/profile.json"],
+        summary="已更新校园节律；计划会区分工作日与周末容量。",
+        next_action="运行 replan，让课程、实习和生活约束进入今日容量。",
+        routine=routine,
+    )
+
+
+def set_profile_context(
+    raw_workspace: str,
+    target: str | None,
+    target_school: str | None,
+    target_major: str | None,
+) -> dict[str, Any]:
+    workspace, root = require_workspace(raw_workspace)
+    if all(value is None for value in (target, target_school, target_major)):
+        raise EmeraldError(
+            "no_profile_changes",
+            "没有提供需要更新的目标信息。",
+            "至少提供考试目标、目标院校或目标专业之一。",
+        )
+    changes: dict[str, Any] = {}
+    if target is not None:
+        changes["target"] = target.strip() or "全国硕士研究生招生考试初试"
+    if target_school is not None:
+        changes["target_school"] = target_school.strip() or None
+    if target_major is not None:
+        changes["target_major"] = target_major.strip() or None
+    profile = update_profile(root, changes)
+    return _response(
+        "profile set",
+        workspace,
+        updated_files=[f"{STATE_DIR}/profile.json"],
+        summary="已更新考试目标、院校或专业信息。",
+        next_action="核对目标院校官方范围；专业课再按科目代码绑定可靠资料。",
+        profile=profile,
+    )
+
+
 def add_subject(
     raw_workspace: str,
     name: str,
@@ -104,6 +205,7 @@ def add_subject(
     target: float,
     kind: str,
     estimated_hours: float | None,
+    exam_code: str | None = None,
 ) -> dict[str, Any]:
     workspace, root = require_workspace(raw_workspace)
     name = name.strip()
@@ -140,6 +242,7 @@ def add_subject(
         "current_score": float(baseline),
         "target": float(target),
         "kind": kind,
+        "exam_code": exam_code.strip() if exam_code and exam_code.strip() else None,
         "estimated_hours": float(estimated_hours) if estimated_hours is not None else None,
         "score_history": [],
         "created_at": now_iso(),
@@ -164,6 +267,7 @@ def add_topic(
     mastery: float,
     confidence: float,
     estimated_hours: float | None,
+    chapter: str | None = None,
 ) -> dict[str, Any]:
     workspace, root = require_workspace(raw_workspace)
     subjects = read_json(root / "subjects.json")
@@ -189,6 +293,7 @@ def add_topic(
         "id": "topic-" + hashlib.sha1(f"{subject['id']}|{name.casefold()}".encode("utf-8")).hexdigest()[:10],
         "subject_id": subject["id"],
         "name": name,
+        "chapter": chapter.strip() if chapter and chapter.strip() else None,
         "weight": float(weight),
         "mastery": round(float(mastery), 4),
         "confidence": round(float(confidence), 4),
@@ -447,6 +552,9 @@ def ingest(
     evidence_level: str,
     subject_name: str | None = None,
     topic_name: str | None = None,
+    classification_confidence: str = "high",
+    match_note: str | None = None,
+    replace_metadata: bool = False,
 ) -> dict[str, Any]:
     workspace, root = require_workspace(raw_workspace)
     if evidence_level not in EVIDENCE_LEVELS:
@@ -455,8 +563,40 @@ def ingest(
             f"不支持证据等级：{evidence_level}",
             f"请选择：{', '.join(sorted(EVIDENCE_LEVELS))}。",
         )
+    if classification_confidence not in CLASSIFICATION_CONFIDENCES:
+        raise EmeraldError(
+            "invalid_classification_confidence",
+            f"不支持材料归类置信度：{classification_confidence}",
+            f"请选择：{', '.join(sorted(CLASSIFICATION_CONFIDENCES))}。",
+        )
+    if classification_confidence == "low" and (subject_name or topic_name):
+        raise EmeraldError(
+            "low_confidence_binding",
+            "低置信材料不能直接绑定科目或专题。",
+            "先不带 --subject/--topic 建库并标记待确认；核对后以更高置信度重新绑定。",
+        )
+    if classification_confidence == "medium" and topic_name:
+        raise EmeraldError(
+            "medium_confidence_topic_binding",
+            "中等置信材料可以暂归科目，但不能直接绑定具体专题。",
+            "移除 --topic；确认范围和题型证据后再绑定专题。",
+        )
     subjects = read_json(root / "subjects.json")
     subject = _find_subject(subjects, subject_name) if subject_name else None
+    profile = read_json(root / "profile.json")
+    if evidence_level == "target_school_open":
+        if not profile.get("target_school"):
+            raise EmeraldError(
+                "target_school_required",
+                "目标院校公开资料需要先记录目标院校。",
+                "运行 profile set WORKSPACE --target-school NAME 后重试。",
+            )
+        if subject is None or not match_note or not match_note.strip():
+            raise EmeraldError(
+                "target_school_match_required",
+                "目标院校公开资料必须绑定科目并记录匹配依据。",
+                "提供 --subject 和 --match-note，写明院校、科目/代码、资料类型与可追溯年份。",
+            )
     topics = read_json(root / "topics.json")
     if topic_name and subject is None:
         raise EmeraldError("topic_requires_subject", "使用 --topic 时必须同时提供 --subject。", "补充科目名后重试。")
@@ -478,14 +618,18 @@ def ingest(
         evidence_level,
         subject["id"] if subject else None,
         topic["id"] if topic else None,
+        classification_confidence,
+        match_note.strip() if match_note and match_note.strip() else None,
+        replace_metadata,
     )
     atomic_write_json(root / "sources.json", sources)
     atomic_write_json(root / "question_bank.json", questions)
-    profile = read_json(root / "profile.json")
     plan = read_json(root / "plan.json", {})
     if plan:
         _write_views(root, profile, subjects, plan)
     binding_updates = sum(1 for warning in warnings if warning.startswith("更新重复材料的科目/专题绑定"))
+    if classification_confidence in {"medium", "low"}:
+        warnings.append("材料尚未达到高置信归类；不得用它单独确定考试范围或专题权重。")
     summary = f"已建库 {len(added)} 个新材料，提取 {sum(item['question_count'] for item in added)} 道来源题。"
     if binding_updates:
         summary += f"另更新 {binding_updates} 个已有材料的科目/专题绑定。"
@@ -551,6 +695,8 @@ def drill(raw_workspace: str, subject_name: str, topic_name: str | None = None) 
             "name": source["name"],
             "path": source["path"],
             "evidence_level": source["evidence_level"],
+            "classification_confidence": source.get("classification_confidence", "high"),
+            "match_note": source.get("match_note"),
             "locator": selected.get("locator"),
         }
     return _response(
@@ -673,7 +819,7 @@ def set_focus(
     raw_workspace: str,
     task_id: str,
     when: str,
-    where: str,
+    where: str | None,
     obstacle: str | None,
 ) -> dict[str, Any]:
     workspace, root = require_workspace(raw_workspace)
@@ -681,20 +827,23 @@ def set_focus(
     task = next((item for item in plan.get("tasks", []) if item["id"] == task_id), None)
     if task is None:
         raise EmeraldError("task_not_found", f"当前计划中没有 task-id：{task_id}", "运行 today 获取当前任务。")
-    if not when.strip() or not where.strip():
+    profile = read_json(root / "profile.json")
+    routine = profile.get("routine") if isinstance(profile.get("routine"), dict) else {}
+    resolved_place = where.strip() if where and where.strip() else routine.get("preferred_place")
+    if not when.strip() or not resolved_place:
         raise EmeraldError(
             "invalid_focus_cue",
             "启动触发必须包含可观察的时间/事件和地点。",
-            "例如：--when '晚饭后 19:00' --where '图书馆三楼固定座位'。",
+            "提供 --where，或先用 routine set 保存常用学习地点。",
         )
     focus = {
         "schema_version": 2,
         "created_at": now_iso(),
         "task_id": task_id,
         "when": when.strip(),
-        "where": where.strip(),
+        "where": resolved_place,
         "obstacle": obstacle.strip() if obstacle else None,
-        "if_then": f"如果到了{when.strip()}，并且我在{where.strip()}，那么我先打开任务“{task['title']}”，完成 5 分钟闭卷启动。",
+        "if_then": f"如果到了{when.strip()}，并且我在{resolved_place}，那么我先打开任务“{task['title']}”，完成 5 分钟闭卷启动。",
         "coping_plan": (
             f"如果出现“{obstacle.strip()}”，那么把任务缩成 2 分钟，并先完成第一步。" if obstacle else None
         ),
