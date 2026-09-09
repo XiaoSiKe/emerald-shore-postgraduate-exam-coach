@@ -107,6 +107,7 @@ class IngestTests(unittest.TestCase):
             before = hashlib.sha256(source.read_bytes()).hexdigest()
             first = ingest(str(workspace), [str(source)], "past_paper")
             second = ingest(str(workspace), [str(source)], "past_paper")
+            ingest(str(workspace), [str(source)], "user_material")
             after = hashlib.sha256(source.read_bytes()).hexdigest()
             self.assertEqual(before, after)
             self.assertEqual(len(first["added_sources"]), 1)
@@ -116,6 +117,22 @@ class IngestTests(unittest.TestCase):
             self.assertEqual(len(sources), 1)
             self.assertEqual(len(questions), 2)
             self.assertEqual(sources[0]["evidence_level"], "past_paper")
+            self.assertEqual(sources[0]["classification_confidence"], "high")
+            derived = Path(sources[0]["derived_path"]).read_text(encoding="utf-8")
+            self.assertIn("归类置信度：`high`", derived)
+            ingest(
+                str(workspace),
+                [str(source)],
+                "user_material",
+                classification_confidence="medium",
+                replace_metadata=True,
+            )
+            sources = read_json(workspace / ".emerald-shore/sources.json")
+            self.assertEqual(sources[0]["evidence_level"], "user_material")
+            self.assertEqual(sources[0]["classification_confidence"], "medium")
+            derived = Path(sources[0]["derived_path"]).read_text(encoding="utf-8")
+            self.assertIn("证据等级：`user_material`", derived)
+            self.assertIn("归类置信度：`medium`", derived)
 
 
 if __name__ == "__main__":

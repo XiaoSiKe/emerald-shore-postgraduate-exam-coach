@@ -153,6 +153,24 @@ def extract_questions(
     return questions
 
 
+def source_header(
+    path: Path,
+    digest: str,
+    evidence_level: str,
+    classification_confidence: str,
+    match_note: str | None,
+) -> str:
+    return (
+        f"# 材料提取：{path.name}\n\n"
+        f"- 原始路径：`{path}`\n"
+        f"- SHA-256：`{digest}`\n"
+        f"- 证据等级：`{evidence_level}`\n"
+        f"- 归类置信度：`{classification_confidence}`\n"
+        f"- 匹配依据：{match_note or '未提供'}\n\n"
+        "---\n\n"
+    )
+
+
 def ingest_files(
     paths: Iterable[Path],
     state_root: Path,
@@ -161,6 +179,9 @@ def ingest_files(
     evidence_level: str,
     subject_id: str | None = None,
     topic_id: str | None = None,
+    classification_confidence: str = "high",
+    match_note: str | None = None,
+    replace_metadata: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[str]]:
     by_digest = {item.get("sha256"): item for item in existing_sources}
     added = []
@@ -172,31 +193,63 @@ def ingest_files(
         if digest in by_digest:
             existing = by_digest[digest]
             changed_binding = False
+            changed_metadata = False
             if subject_id and existing.get("subject_id") != subject_id:
                 existing["subject_id"] = subject_id
                 changed_binding = True
             if topic_id and existing.get("topic_id") != topic_id:
                 existing["topic_id"] = topic_id
                 changed_binding = True
+            if replace_metadata:
+                if existing.get("classification_confidence") != classification_confidence:
+                    existing["classification_confidence"] = classification_confidence
+                    changed_metadata = True
+                if existing.get("evidence_level") != evidence_level:
+                    existing["evidence_level"] = evidence_level
+                    changed_metadata = True
+                if existing.get("match_note") != match_note:
+                    existing["match_note"] = match_note
+                    changed_metadata = True
+                if classification_confidence == "low" and (
+                    existing.get("subject_id") is not None or existing.get("topic_id") is not None
+                ):
+                    existing["subject_id"] = None
+                    existing["topic_id"] = None
+                    changed_binding = True
+                elif classification_confidence == "medium" and existing.get("topic_id") is not None:
+                    existing["topic_id"] = None
+                    changed_binding = True
             if changed_binding:
                 for question in existing_questions:
                     if question.get("source_id") == existing.get("id"):
-                        question["subject_id"] = subject_id
-                        question["topic_id"] = topic_id
+                        question["subject_id"] = existing.get("subject_id")
+                        question["topic_id"] = existing.get("topic_id")
                 warnings.append(f"更新重复材料的科目/专题绑定：{path}")
-            else:
+            if changed_metadata:
+                derived = Path(existing.get("derived_path", ""))
+                if derived.is_file():
+                    existing_text = derived.read_text(encoding="utf-8")
+                    body = existing_text.split("---\n\n", 1)[-1]
+                    original_path = Path(existing.get("path") or path)
+                    atomic_write_text(
+                        derived,
+                        source_header(
+                            original_path,
+                            existing.get("sha256") or digest,
+                            existing["evidence_level"],
+                            existing["classification_confidence"],
+                            existing.get("match_note"),
+                        )
+                        + body,
+                    )
+                warnings.append(f"更新重复材料的归类置信度或匹配依据：{path}")
+            if not changed_binding and not changed_metadata:
                 warnings.append(f"跳过重复材料：{path}")
             continue
         text, file_warnings = extract_text(path)
         source_id = stable_id(digest, path.name)
         derived_path = materials_dir / f"{source_id}.md"
-        header = (
-            f"# 材料提取：{path.name}\n\n"
-            f"- 原始路径：`{path}`\n"
-            f"- SHA-256：`{digest}`\n"
-            f"- 证据等级：`{evidence_level}`\n\n"
-            "---\n\n"
-        )
+        header = source_header(path, digest, evidence_level, classification_confidence, match_note)
         atomic_write_text(derived_path, header + text)
         questions = extract_questions(text, source_id, subject_id, topic_id)
         record = {
@@ -208,6 +261,8 @@ def ingest_files(
             "size_bytes": path.stat().st_size,
             "sha256": digest,
             "evidence_level": evidence_level,
+            "classification_confidence": classification_confidence,
+            "match_note": match_note,
             "subject_id": subject_id,
             "topic_id": topic_id,
             "ingested_at": now_iso(),

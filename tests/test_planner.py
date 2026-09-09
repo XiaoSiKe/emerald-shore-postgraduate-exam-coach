@@ -70,6 +70,32 @@ class PlanningTests(unittest.TestCase):
         second = build_plan(self.profile, self.subjects, [], [], "replan", self.today)
         self.assertEqual([task["id"] for task in first["tasks"]], [task["id"] for task in second["tasks"]])
 
+    def test_campus_routine_changes_weekday_and_weekend_capacity(self):
+        profile = {
+            **self.profile,
+            "routine": {
+                "weekday_hours": 4,
+                "weekend_hours": 8,
+                "sleep_floor_hours": 7,
+                "preferred_place": "图书馆三楼",
+                "fixed_commitments": ["周三实验课", "周五社团值班"],
+            },
+        }
+        weekday = build_plan(profile, self.subjects, [], [], "test", date(2026, 1, 1))
+        weekend = build_plan(profile, self.subjects, [], [], "test", date(2026, 1, 3))
+        self.assertEqual(weekday["daily_capacity_minutes"], 204)
+        self.assertEqual(weekend["daily_capacity_minutes"], 408)
+        self.assertEqual(weekday["day_context"]["day_type"], "weekday")
+        self.assertEqual(weekend["day_context"]["day_type"], "weekend")
+        self.assertEqual(weekday["day_context"]["preferred_place"], "图书馆三楼")
+        self.assertEqual(weekday["day_context"]["fixed_commitments"], ["周三实验课", "周五社团值班"])
+
+    def test_low_sleep_floor_warns_without_increasing_capacity(self):
+        profile = {**self.profile, "routine": {"weekday_hours": 4, "sleep_floor_hours": 5}}
+        plan = build_plan(profile, self.subjects, [], [], "test", self.today)
+        self.assertEqual(plan["daily_capacity_minutes"], 204)
+        self.assertTrue(any("睡眠底线低于 6 小时" in warning for warning in plan["warnings"]))
+
     def test_due_review_comes_first(self):
         queue = [{"key": "subject:math", "subject_id": "math", "label": "数学", "next_due": "2026-01-01"}]
         plan = build_plan(self.profile, self.subjects, [], queue, "test", self.today)

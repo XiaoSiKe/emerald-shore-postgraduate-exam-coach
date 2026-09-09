@@ -15,7 +15,18 @@
       "repo": "cxs885187-create/--skill",
       "commit": "aa0467bd848ce40000e0bdd80667d4f24d946bc3",
       "license": null,
-      "policy": "concept-only-no-copy"
+      "policy": "concept-only-no-copy",
+      "license_evidence": "README claim only; repository has no LICENSE file and GitHub License API returns 404",
+      "distilled_mechanisms": [
+        "single-active-course",
+        "confidence-based-material-triage",
+        "course-skeleton-first",
+        "target-school-source-matching",
+        "actionable-topic-cards",
+        "purposeful-visualization",
+        "self-test-fuse",
+        "incremental-updates"
+      ]
     },
     {
       "repo": "Candlest/exam-prep-skill",

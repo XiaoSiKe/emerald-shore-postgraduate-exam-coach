@@ -48,6 +48,8 @@ def validate(root: Path) -> list[str]:
         "README.md",
         "README.zh-CN.md",
         "references/coach-orchestration.md",
+        "references/campus-life-system.md",
+        "references/course-evidence-system.md",
         "LICENSE",
         "THIRD_PARTY_NOTICES.md",
         "sources.lock.json",
@@ -72,6 +74,9 @@ def validate(root: Path) -> list[str]:
             errors.append(str(exc))
         if "references/coach-orchestration.md" not in text:
             errors.append("SKILL.md 没有路由到教练编排协议")
+        for reference in ("references/campus-life-system.md", "references/course-evidence-system.md"):
+            if reference not in text:
+                errors.append(f"SKILL.md 没有路由到 {reference}")
     openai_yaml = root / "agents/openai.yaml"
     if openai_yaml.exists():
         yaml_text = openai_yaml.read_text(encoding="utf-8")
@@ -91,7 +96,16 @@ def validate(root: Path) -> list[str]:
     readme_path = root / "README.md"
     if readme_path.exists():
         readme_text = readme_path.read_text(encoding="utf-8")
-        for marker in ("这是一个 **Agent Skill**", "不是独立 App", "references/coach-orchestration.md"):
+        for marker in (
+            "# 🌊 青岸计划·考研冲刺教练",
+            "一万年太久，只争朝夕！",
+            "这是一个 **Agent Skill**",
+            "不是独立 App",
+            "## 🧩 八大系统",
+            "references/coach-orchestration.md",
+            "references/campus-life-system.md",
+            "references/course-evidence-system.md",
+        ):
             if marker not in readme_text:
                 errors.append(f"README.md 缺少 Skill 定位标记：{marker}")
     for markdown in root.rglob("*.md"):

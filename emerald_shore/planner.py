@@ -61,6 +61,30 @@ def due_reviews(queue: list[dict[str, Any]], today: date | None = None) -> list[
     return sorted(result, key=lambda item: (item.get("next_due", ""), -item.get("error_count", 0)))
 
 
+def campus_day_context(profile: dict[str, Any], current: date) -> dict[str, Any]:
+    """把大学生日常节律转换为当天容量，同时兼容旧工作区。"""
+    routine = profile.get("routine") if isinstance(profile.get("routine"), dict) else {}
+    is_weekend = current.weekday() >= 5
+    hours_key = "weekend_hours" if is_weekend else "weekday_hours"
+    raw_hours = routine.get(hours_key)
+    basis = f"routine-{hours_key}"
+    try:
+        available_hours = float(raw_hours)
+        if available_hours <= 0 or available_hours > 24:
+            raise ValueError
+    except (TypeError, ValueError):
+        available_hours = float(profile["daily_hours"])
+        basis = "profile-daily-hours"
+    return {
+        "day_type": "weekend" if is_weekend else "weekday",
+        "available_hours": round(available_hours, 2),
+        "capacity_basis": basis,
+        "sleep_floor_hours": routine.get("sleep_floor_hours"),
+        "preferred_place": routine.get("preferred_place"),
+        "fixed_commitments": list(routine.get("fixed_commitments") or []),
+    }
+
+
 def _mistake_counts(mistakes: list[dict[str, Any]]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in mistakes:
@@ -185,7 +209,11 @@ def build_plan(
     current = today or date.today()
     phase = determine_phase(profile["exam_date"], current)
     ranked = rank_subjects(subjects, mistakes)
-    capacity = max(1, int(float(profile["daily_hours"]) * 60 * (1 - float(profile.get("buffer_ratio", 0.15)))))
+    day_context = campus_day_context(profile, current)
+    capacity = max(
+        1,
+        int(day_context["available_hours"] * 60 * (1 - float(profile.get("buffer_ratio", 0.15)))),
+    )
     due = due_reviews(review_queue, current)
     specs = []
     if due:
@@ -238,12 +266,16 @@ def build_plan(
         warnings.append("部分科目缺少预计达标成本，优先级为保守估计；用 checkpoint 和 estimated-hours 校准。")
     if phase["days_remaining"] > 120:
         warnings.append("距离考试超过典型冲刺窗口，当前按基础重建阶段运行。")
+    sleep_floor = day_context.get("sleep_floor_hours")
+    if sleep_floor is not None and float(sleep_floor) < 6:
+        warnings.append("当前睡眠底线低于 6 小时；计划不会把继续熬夜或压缩睡眠计入可用容量。")
     return {
         "schema_version": 2,
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "plan_date": current.isoformat(),
         "reason": reason,
         "phase": phase,
+        "day_context": day_context,
         "daily_capacity_minutes": capacity,
         "buffer_ratio": profile.get("buffer_ratio", 0.15),
         "main_subject_id": main["id"],
