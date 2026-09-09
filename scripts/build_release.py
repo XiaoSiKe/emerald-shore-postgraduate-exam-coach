@@ -11,21 +11,21 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-FOLDER = "qingan-kaoyan-coach"
+FOLDER = "emerald-shore-postgraduate-exam-coach"
 VERSION_MATCH = re.search(
     r'^__version__\s*=\s*"([^"]+)"',
-    (ROOT / "qingan/__init__.py").read_text(encoding="utf-8"),
+    (ROOT / "emerald_shore/__init__.py").read_text(encoding="utf-8"),
     re.MULTILINE,
 )
 if VERSION_MATCH is None:
-    raise RuntimeError("qingan/__init__.py does not define __version__")
+    raise RuntimeError("emerald_shore/__init__.py does not define __version__")
 VERSION = VERSION_MATCH.group(1)
 TOP_LEVEL = (
     "SKILL.md",
     "agents",
     "references",
-    "qingan.py",
-    "qingan",
+    "emerald.py",
+    "emerald_shore",
     "README.md",
     "README.zh-CN.md",
     "LICENSE",
@@ -76,7 +76,7 @@ def main(argv=None) -> int:
     destination = (ROOT / args.output).resolve()
     digest = build(destination)
     if args.check:
-        with tempfile.TemporaryDirectory(prefix="qingan-release-") as temp:
+        with tempfile.TemporaryDirectory(prefix="emerald-shore-release-") as temp:
             second = Path(temp) / destination.name
             second_digest = build(second)
         if digest != second_digest:

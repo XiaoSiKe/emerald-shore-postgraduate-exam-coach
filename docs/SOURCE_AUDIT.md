@@ -13,6 +13,10 @@
 | XiaomiMiMo/MiMo-Code | `4f44dab00ac2eeae377a0c4000a1cc0987eb3fb6`（目标文件最近提交） | MIT | 增量教学、跨会话状态、掌握看迁移 | 宿主专用实现 |
 | HughYau/qiushi-skill | `3d36c1471081d0cedce248836522c6e845f9b516` | MIT | 调查、主要矛盾、集中、实践、阶段纠错 | 插件、hooks、原著摘录和政治化表达 |
 | leezythu/maoxuan-skill | `4376a65020b1fd96af65052ccd30accaddedc3f1` | MIT | 作为策略模型交叉参考 | 人物模拟、表达 DNA、原话 |
+| mohitagw15856/pm-claude-skills · exam-study-plan | `5a0326ce34b44c015fc26b5c28f6118092c806e4` | MIT | 逆向排期、权重与弱项共同排序、最后阶段收束 | 原文模板和庞大插件系统 |
+| open-spaced-repetition/py-fsrs · README | `81765cf8eb6ebb422ce36194372074fb0c8a08b2` | MIT | 复习评分、可提取概率、日志足够后再优化的边界 | 运行依赖、参数和算法代码 |
+| 24kchengYe/human-skill-tree · learning-how-to-learn | `50cb585c5186c05ed4b6c5d4df2ca34476379064` | Skill 文件可选 MIT | 方法与任务匹配、反熟悉感、具体进步反馈 | Web 应用与 AGPL 代码 |
+| GarethManning/education-agent-skills | `6bbbce418f82e11044009c9f3b7373a354de5bd0` | CC BY-SA 4.0 | 仅作 SRL/if–then 研究线索，回到原始论文独立设计 | 未复制或改编任何 Skill 文字、模板与结构 |
 
 实施时不得从无许可证来源复制可版权化表达；`sources.lock.json` 是上游版本核验的机器可读权威记录。
 
@@ -21,6 +25,9 @@
 - Dunlosky et al. (2013), DOI `10.1177/1529100612453266`。
 - Carpenter, Pan & Butler (2022), DOI `10.1038/s44159-022-00089-1`。
 - Weinstein, Sumeracki & Caviglioli (2018), DOI `10.1186/s41235-017-0087-y`。
+- Zimmerman (2002), DOI `10.1207/S15430421TIP4102_2`：计划、执行监控、自我反思的循环。
+- Panadero (2017), DOI `10.3389/fpsyg.2017.00422`：自我调节学习模型综述及认知、动机、情绪维度。
+- Gollwitzer (1999), DOI `10.1037/0003-066X.54.7.493`：把具体情境与目标行为连接成 implementation intention。
 
 研究结论被转译成行为规则，不复制论文图表或长段文字。效果为群体层面证据，不构成个人提分保证。
 

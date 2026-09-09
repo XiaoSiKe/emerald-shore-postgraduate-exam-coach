@@ -22,7 +22,7 @@ def latest_commit(repo: str, path: str | None = None) -> str:
         f"https://api.github.com/repos/{encoded}/commits{query}",
         headers={
             "Accept": "application/vnd.github+json",
-            "User-Agent": "qingan-upstream-check/0.1",
+            "User-Agent": "emerald-shore-upstream-check/0.2",
             **({"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}"} if os.environ.get("GITHUB_TOKEN") else {}),
         },
     )

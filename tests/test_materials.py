@@ -6,9 +6,9 @@ import zipfile
 from datetime import date, timedelta
 from pathlib import Path
 
-from qingan.materials import extract_questions, extract_text
-from qingan.service import ingest, init
-from qingan.state import read_json
+from emerald_shore.materials import extract_questions, extract_text
+from emerald_shore.service import ingest, init
+from emerald_shore.state import read_json
 
 
 def write_text_pdf(path, text):
@@ -111,8 +111,8 @@ class IngestTests(unittest.TestCase):
             self.assertEqual(before, after)
             self.assertEqual(len(first["added_sources"]), 1)
             self.assertEqual(len(second["added_sources"]), 0)
-            sources = read_json(workspace / ".qingan/sources.json")
-            questions = read_json(workspace / ".qingan/question_bank.json")
+            sources = read_json(workspace / ".emerald-shore/sources.json")
+            questions = read_json(workspace / ".emerald-shore/question_bank.json")
             self.assertEqual(len(sources), 1)
             self.assertEqual(len(questions), 2)
             self.assertEqual(sources[0]["evidence_level"], "past_paper")

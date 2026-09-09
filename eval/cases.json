@@ -2,7 +2,7 @@
   {
     "id": "blank-workspace",
     "reference": "SKILL.md",
-    "required_markers": ["没有 `.qingan/profile.json`", "init", "subject add"],
+    "required_markers": ["没有 `.emerald-shore/profile.json`", "init", "subject add"],
     "critical": true
   },
   {
@@ -82,5 +82,35 @@
     "reference": "SKILL.md",
     "required_markers": ["不承诺分数", "上岸"],
     "critical": true
+  },
+  {
+    "id": "legacy-migration",
+    "reference": "SKILL.md",
+    "required_markers": ["旧 `.qingan/`", "migrate", "旧目录必须保留"],
+    "critical": true
+  },
+  {
+    "id": "topic-bottleneck",
+    "reference": "SKILL.md",
+    "required_markers": ["按科目找主要矛盾", "按专题找最小突破口"],
+    "critical": false
+  },
+  {
+    "id": "source-drill",
+    "reference": "references/training-loop.md",
+    "required_markers": ["drill --subject", "不展示答案", "attempt"],
+    "critical": true
+  },
+  {
+    "id": "weekly-self-regulation",
+    "reference": "references/self-regulated-sprint.md",
+    "required_markers": ["计划—监控—反思", "weekly", "策略，不归因人格"],
+    "critical": false
+  },
+  {
+    "id": "implementation-intention",
+    "reference": "references/self-regulated-sprint.md",
+    "required_markers": ["if–then", "具体时间/事件和地点", "5 分钟闭卷启动"],
+    "critical": false
   }
 ]

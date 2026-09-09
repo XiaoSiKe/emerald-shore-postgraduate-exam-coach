@@ -7,10 +7,10 @@ import unittest
 from datetime import date, timedelta
 from pathlib import Path
 
-from qingan.errors import QinganError
-from qingan.cli import emit_json
-from qingan.service import add_subject, checkpoint, init, log_task, make_plan, status
-from qingan.state import read_json, read_jsonl
+from emerald_shore.errors import EmeraldError
+from emerald_shore.cli import emit_json
+from emerald_shore.service import add_subject, checkpoint, init, log_task, make_plan, status
+from emerald_shore.state import read_json, read_jsonl
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -38,7 +38,7 @@ class ServiceFlowTests(unittest.TestCase):
         self.assertEqual(task_ids, [task["id"] for task in second["plan"]["tasks"]])
         result = checkpoint(str(self.workspace), "数学", 90, 150, 180)
         self.assertEqual(result["command"], "checkpoint")
-        subjects = read_json(self.workspace / ".qingan/subjects.json")
+        subjects = read_json(self.workspace / ".emerald-shore/subjects.json")
         math = next(item for item in subjects if item["name"] == "数学")
         self.assertEqual(math["current_score"], 90)
         self.assertEqual(len(math["score_history"]), 1)
@@ -48,9 +48,9 @@ class ServiceFlowTests(unittest.TestCase):
         main = next(task for task in plan["tasks"] if task["role"] == "main")
         result = log_task(str(self.workspace), main["id"], 45, "wrong", "reasoning", "方法选择错误")
         self.assertTrue(result["ok"])
-        mistakes = read_jsonl(self.workspace / ".qingan/mistakes.jsonl")
+        mistakes = read_jsonl(self.workspace / ".emerald-shore/mistakes.jsonl")
         self.assertEqual(mistakes[0]["error_type"], "reasoning")
-        queue = read_json(self.workspace / ".qingan/review_queue.json")
+        queue = read_json(self.workspace / ".emerald-shore/review_queue.json")
         self.assertEqual(queue[0]["status"], "review-needed")
         self.assertEqual(queue[0]["key"], f"subject:{main['subject_id']}")
 
@@ -58,7 +58,7 @@ class ServiceFlowTests(unittest.TestCase):
         first_plan = make_plan(str(self.workspace))["plan"]
         main = next(task for task in first_plan["tasks"] if task["role"] == "main")
         log_task(str(self.workspace), main["id"], 30, "wrong", "knowledge_gap", "首次错误")
-        queue_path = self.workspace / ".qingan/review_queue.json"
+        queue_path = self.workspace / ".emerald-shore/review_queue.json"
         queue = read_json(queue_path)
         queue[0]["next_due"] = date.today().isoformat()
         queue_path.write_text(json.dumps(queue, ensure_ascii=False), encoding="utf-8")
@@ -71,20 +71,20 @@ class ServiceFlowTests(unittest.TestCase):
         self.assertEqual(updated[0]["last_result"], "complete")
 
     def test_corrupt_state_is_preserved_and_reported(self):
-        profile = self.workspace / ".qingan/profile.json"
+        profile = self.workspace / ".emerald-shore/profile.json"
         profile.write_text("{broken", encoding="utf-8")
-        with self.assertRaises(QinganError) as caught:
+        with self.assertRaises(EmeraldError) as caught:
             status(str(self.workspace))
         self.assertEqual(caught.exception.code, "corrupt_state")
         self.assertEqual(profile.read_text(encoding="utf-8"), "{broken")
 
     def test_cli_success_and_error_are_json(self):
-        command = [sys.executable, str(ROOT / "qingan.py"), "status", str(self.workspace)]
+        command = [sys.executable, str(ROOT / "emerald.py"), "status", str(self.workspace)]
         success = subprocess.run(command, check=False, capture_output=True, text=True)
         self.assertEqual(success.returncode, 0, success.stderr)
         self.assertTrue(json.loads(success.stdout)["ok"])
         failure = subprocess.run(
-            [sys.executable, str(ROOT / "qingan.py"), "today", str(Path(self.temp.name) / "missing")],
+            [sys.executable, str(ROOT / "emerald.py"), "today", str(Path(self.temp.name) / "missing")],
             check=False,
             capture_output=True,
             text=True,
@@ -106,10 +106,10 @@ class ValidationTests(unittest.TestCase):
 
     def test_invalid_init_values(self):
         with tempfile.TemporaryDirectory() as temp:
-            with self.assertRaises(QinganError) as caught:
+            with self.assertRaises(EmeraldError) as caught:
                 init(str(Path(temp) / "bad"), "not-a-date", 4, "目标")
             self.assertEqual(caught.exception.code, "invalid_exam_date")
-            with self.assertRaises(QinganError) as caught:
+            with self.assertRaises(EmeraldError) as caught:
                 init(str(Path(temp) / "bad2"), (date.today() + timedelta(days=4)).isoformat(), -1, "目标")
             self.assertEqual(caught.exception.code, "invalid_daily_hours")
 

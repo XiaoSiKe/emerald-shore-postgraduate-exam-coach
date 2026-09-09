@@ -2,7 +2,7 @@
 
 ## 版本
 
-使用语义化版本。行为兼容修复增加 patch；新增可选命令增加 minor；状态或 CLI 不兼容变更增加 major，并提供迁移说明。每次发布更新 `CHANGELOG.md`。
+使用语义化版本。行为兼容修复增加 patch；新增能力增加 minor。1.0 之前的不兼容标识或状态变更增加 minor 并必须提供迁移说明；1.0 之后此类变更增加 major。每次发布更新 `CHANGELOG.md`。
 
 ## 发布门禁
 
@@ -10,7 +10,8 @@
 2. `python scripts/validate_skill.py .`
 3. `python scripts/run_static_eval.py`
 4. `python scripts/build_release.py --check`
-5. 解压 ZIP 后在临时目录运行 `--version`、`init`、`subject add`、`plan`、`today` 冒烟流程。
+5. 解压 ZIP 后运行 `--version`、`init`、`subject add`、`topic add`、`plan`、`weekly` 冒烟流程。
+6. 用一份真实 V0.1 fixture 运行 `migrate`，确认旧目录保留、schema 2 可继续计划。
 
 关键行为、安全、隐私、来源诚实必须全部通过；静态行为评测总分至少 90%。未运行真实模型评测时必须在报告中写明，不能把静态检查冒充真实对话结果。
 
@@ -24,4 +25,4 @@ Issue 分为 Bug、功能建议、方法来源更新。Bug 要求提供命令、
 
 ## 运营指标
 
-只使用 GitHub Stars、Release 下载、Issues 和用户自愿提交的脱敏评测。禁止在 Skill 内加入遥测。优先修复来源错误、状态损坏、计划超量和泄露答案；不以功能数量为迭代目标。
+只使用 GitHub Stars、Release 下载、Issues 和用户自愿提交的脱敏评测。禁止在 Skill 内加入遥测。优先修复来源错误、迁移失败、状态损坏、计划超量、专题误排和泄露答案；不以功能数量为迭代目标。

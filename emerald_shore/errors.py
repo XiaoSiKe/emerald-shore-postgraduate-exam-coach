@@ -1,7 +1,7 @@
-"""面向 Agent 调用方的稳定错误类型。"""
+"""Stable error types for agent callers."""
 
 
-class QinganError(Exception):
+class EmeraldError(Exception):
     def __init__(self, code, message, recovery, details=None):
         super().__init__(message)
         self.code = code

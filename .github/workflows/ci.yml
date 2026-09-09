@@ -30,7 +30,7 @@ jobs:
       - name: Install optional PDF parser
         run: python -m pip install pypdf
       - name: Compile
-        run: python -m compileall -q qingan qingan.py scripts tests
+        run: python -m compileall -q emerald_shore emerald.py scripts tests
       - name: Unit and integration tests
         run: python -m unittest discover -s tests -v
       - name: Validate Skill
@@ -54,12 +54,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/qingan-install /tmp/qingan-study
-          unzip -q dist/qingan-kaoyan-coach-v0.1.0.zip -d /tmp/qingan-install
-          cd /tmp/qingan-install/qingan-kaoyan-coach
+          mkdir -p /tmp/emerald-shore-install /tmp/emerald-shore-study
+          unzip -q dist/emerald-shore-postgraduate-exam-coach-v0.2.0.zip -d /tmp/emerald-shore-install
+          cd /tmp/emerald-shore-install/emerald-shore-postgraduate-exam-coach
           exam_date=$(date -d "+90 days" +%F)
-          python qingan.py --version
-          python qingan.py init /tmp/qingan-study --exam-date "$exam_date" --daily-hours 4
-          python qingan.py subject add /tmp/qingan-study --name 数学 --max-score 150 --baseline 70 --target 110 --kind calculation
-          python qingan.py plan /tmp/qingan-study
-          python qingan.py today /tmp/qingan-study
+          python emerald.py --version
+          python emerald.py init /tmp/emerald-shore-study --exam-date "$exam_date" --daily-hours 4
+          python emerald.py subject add /tmp/emerald-shore-study --name 数学 --max-score 150 --baseline 70 --target 110 --kind calculation
+          python emerald.py topic add /tmp/emerald-shore-study --subject 数学 --name 微积分 --weight 3 --mastery 0.3
+          python emerald.py plan /tmp/emerald-shore-study
+          python emerald.py weekly /tmp/emerald-shore-study

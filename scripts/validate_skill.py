@@ -12,6 +12,7 @@ from pathlib import Path
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+EXPECTED_NAME = "emerald-shore-postgraduate-exam-coach"
 
 
 def frontmatter(text: str) -> dict[str, str]:
@@ -34,8 +35,8 @@ def validate(root: Path) -> list[str]:
     required = [
         "SKILL.md",
         "agents/openai.yaml",
-        "qingan.py",
-        "qingan/__init__.py",
+        "emerald.py",
+        "emerald_shore/__init__.py",
         "README.md",
         "README.zh-CN.md",
         "LICENSE",
@@ -54,6 +55,8 @@ def validate(root: Path) -> list[str]:
             description = metadata.get("description", "")
             if not NAME_RE.fullmatch(name) or len(name) > 64:
                 errors.append("frontmatter name must be <=64 lowercase letters, digits, and hyphens")
+            if name != EXPECTED_NAME:
+                errors.append(f"frontmatter name must be {EXPECTED_NAME}")
             if not description:
                 errors.append("frontmatter description is required")
         except ValueError as exc:
@@ -61,9 +64,15 @@ def validate(root: Path) -> list[str]:
     openai_yaml = root / "agents/openai.yaml"
     if openai_yaml.exists():
         yaml_text = openai_yaml.read_text(encoding="utf-8")
-        for marker in ("display_name:", "short_description:", "default_prompt:", "$qingan-kaoyan-coach"):
+        for marker in ("display_name:", "short_description:", "default_prompt:", "$emerald-shore-postgraduate-exam-coach"):
             if marker not in yaml_text:
                 errors.append(f"agents/openai.yaml missing {marker}")
+    for relative in ("SKILL.md", "README.md", "README.zh-CN.md", "agents/openai.yaml"):
+        path = root / relative
+        if path.exists():
+            val = path.read_text(encoding="utf-8")
+            if "qingan-kaoyan" in val.casefold() or "python qingan.py" in val.casefold():
+                errors.append(f"legacy Pinyin public identifier in {relative}")
     for markdown in root.rglob("*.md"):
         if any(part in {".git", "dist"} for part in markdown.parts):
             continue
