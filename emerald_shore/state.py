@@ -1,4 +1,4 @@
-"""Workspace state, schema migration, validation, and atomic writes."""
+"""学习工作区状态、schema 迁移、校验与原子写入。"""
 
 from __future__ import annotations
 
@@ -119,7 +119,7 @@ def require_workspace(raw: str | os.PathLike[str]) -> tuple[Path, Path]:
             )
         raise EmeraldError(
             "not_initialized",
-            f"{workspace} 尚未初始化 Emerald Shore Initiative。",
+            f"{workspace} 尚未初始化青岸计划。",
             "先运行 emerald.py init WORKSPACE --exam-date DATE --daily-hours HOURS。",
         )
     profile = read_json(root / "profile.json")
@@ -163,7 +163,7 @@ def initialize_workspace(
     if root.exists():
         raise EmeraldError(
             "already_initialized",
-            f"{workspace} 已存在 Emerald Shore Initiative 状态。",
+            f"{workspace} 已存在青岸计划状态。",
             "使用 status 查看，或先备份并移走 .emerald-shore 后重新初始化。",
         )
     workspace.mkdir(parents=True, exist_ok=True)

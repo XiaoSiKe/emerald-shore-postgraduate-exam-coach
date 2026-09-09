@@ -1,4 +1,4 @@
-"""Local material scanning, extraction, deduplication, and question indexing."""
+"""本地材料扫描、提取、去重与题目索引。"""
 
 from __future__ import annotations
 

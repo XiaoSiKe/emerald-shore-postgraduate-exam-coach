@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a deterministic, installable Skill ZIP and SHA-256 checksum."""
+"""构建可重复、可安装的 Skill ZIP 与 SHA-256 校验文件。"""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ VERSION_MATCH = re.search(
     re.MULTILINE,
 )
 if VERSION_MATCH is None:
-    raise RuntimeError("emerald_shore/__init__.py does not define __version__")
+    raise RuntimeError("emerald_shore/__init__.py 没有定义 __version__")
 VERSION = VERSION_MATCH.group(1)
 TOP_LEVEL = (
     "SKILL.md",
@@ -80,7 +80,7 @@ def main(argv=None) -> int:
             second = Path(temp) / destination.name
             second_digest = build(second)
         if digest != second_digest:
-            raise SystemExit("release build is not deterministic")
+            raise SystemExit("发布包重复构建结果不一致")
     print(f"{destination} ({len(release_files())} files) sha256={digest}")
     return 0
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emerald Shore Initiative command-line entry point."""
+"""青岸计划本地证据引擎的命令行入口。"""
 
 from emerald_shore.cli import main
 

@@ -1,3 +1,3 @@
-"""Emerald Shore Initiative local sprint engine."""
+"""青岸计划的本地冲刺证据引擎。"""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

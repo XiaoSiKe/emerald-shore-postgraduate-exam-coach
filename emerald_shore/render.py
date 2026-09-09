@@ -1,4 +1,4 @@
-"""Student-facing Markdown dashboard, daily sheet, and weekly review."""
+"""面向学生的 Markdown 仪表盘、今日单与周复盘。"""
 
 from __future__ import annotations
 

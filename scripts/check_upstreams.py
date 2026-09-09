@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report upstream default-branch changes without modifying the repository."""
+"""只读检查上游默认分支变化，不修改仓库。"""
 
 from __future__ import annotations
 

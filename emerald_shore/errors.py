@@ -1,4 +1,4 @@
-"""Stable error types for agent callers."""
+"""供 Agent 调用方使用的稳定错误类型。"""
 
 
 class EmeraldError(Exception):

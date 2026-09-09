@@ -10,14 +10,18 @@
 2. `python scripts/validate_skill.py .`
 3. `python scripts/run_static_eval.py`
 4. `python scripts/build_release.py --check`
-5. 解压 ZIP 后运行 `--version`、`init`、`subject add`、`topic add`、`plan`、`weekly` 冒烟流程。
-6. 用一份真实 V0.1 fixture 运行 `migrate`，确认旧目录保留、schema 2 可继续计划。
+5. 使用通用 Agent Skills validator 校验 `SKILL.md` frontmatter、命名和目录结构。
+6. 解压 ZIP 后运行 `--version`、`init`、`subject add`、`topic add`、`plan`、`weekly` 冒烟流程。
+7. 用一份真实 V0.1 fixture 运行 `migrate`，确认旧目录保留、schema 2 可继续计划。
+8. 在临时目录验证 Skills CLI 能发现并安装 `emerald-shore-postgraduate-exam-coach`，不得污染维护者的全局 Skill 目录。
 
 关键行为、安全、隐私、来源诚实必须全部通过；静态行为评测总分至少 90%。未运行真实模型评测时必须在报告中写明，不能把静态检查冒充真实对话结果。
 
 ## 反馈
 
 Issue 分为 Bug、功能建议、方法来源更新。Bug 要求提供命令、脱敏后的 JSON 错误、Python/系统版本和预期；禁止上传课程版权材料或个人信息。
+
+用户可见说明、Issue 表单和 Actions 步骤默认使用中文；Skill 名、仓库名、命令、参数、JSON 字段、许可证、论文与项目专名保留英文。README 必须优先说明这是 Agent Skill，再介绍本地证据引擎，避免被误解为独立 App。
 
 ## 上游更新
 

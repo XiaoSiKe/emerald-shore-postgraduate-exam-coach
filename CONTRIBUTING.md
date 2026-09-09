@@ -1,12 +1,19 @@
-# Contributing
+# 参与贡献
 
-Open an Issue before large behavior changes. Do not submit copyrighted course materials, answer keys, personal data, or unlicensed third-party text.
+感谢你帮助青岸计划变得更可靠。较大的行为变更请先创建 Issue；不要提交受版权保护的课程材料、答案、个人信息或无许可证的第三方文字。
 
-For code changes:
+## 代码与 Skill 变更
 
-1. Add or update a behavioral test.
-2. Preserve the stable JSON fields and schema unless the change includes a migration.
-3. Run the release gates in `docs/OPERATIONS.md`.
-4. Update `CHANGELOG.md` and source notices when behavior or provenance changes.
+1. 为可观察行为新增或更新测试。
+2. 除非变更同时提供迁移，否则保留稳定 JSON 字段与现有 schema。
+3. 运行 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) 中的发布门禁。
+4. 行为或来源发生变化时，更新 [`CHANGELOG.md`](CHANGELOG.md) 和来源说明。
+5. 保持 `SKILL.md` 聚焦；仅在对应场景需要的细节放入 `references/`，不要把全部资料一次加载。
 
-Method updates must cite a primary study or authoritative source, state the target learning task, and include a limitation. Product language must not promise scores, predictions, or admission.
+## 方法与资料来源
+
+学习方法更新必须引用原始研究或权威来源，说明适用任务与局限。无许可证、GPL/AGPL 或版权边界不清晰的材料不得复制到本项目；仅作研究线索时也要在来源审计中写清采用边界。
+
+## 产品语言
+
+用户可见说明默认使用中文。Skill 名、CLI 命令、JSON 字段、文件格式、DOI、许可证和项目专名保留英文。不得承诺分数、押题率、录取或“必然有效”。

@@ -2,7 +2,9 @@
 
 ## 架构
 
-`SKILL.md` 负责场景路由和教学纪律；`references/` 只在对应场景加载；`emerald.py` 提供稳定 CLI；`emerald_shore/` 负责状态、计划、专题、材料、逐题训练、渲染和服务编排。运行时无网络依赖，Python 最低版本 3.9。
+`SKILL.md` 是产品入口，负责场景路由、对话协议和教学纪律；`references/` 只在对应场景加载；`emerald.py` 提供稳定的内部 CLI；`emerald_shore/` 负责状态、计划、专题、材料、逐题训练、渲染和服务编排。运行时无网络依赖，Python 最低版本 3.9。
+
+交互按三层组织：对话层识别当前任务并补齐一个关键未知；证据状态层通过公开命令读取或写入 `.emerald-shore/`；反馈层把 JSON 翻译为“当前判断—证据依据—下一动作—完成证据—回流方式”。CLI 失败时不伪造写入成功，允许给出明确标注为未持久化的临时建议。
 
 ## 状态所有权
 
@@ -45,6 +47,8 @@ JSON 文件使用临时文件、`fsync` 和 `os.replace` 原子更新。当前 s
 ## 错误接口
 
 成功 JSON 固定包含 `ok`、`command`、`workspace`、`updated_files`、`summary`、`next_action`、`warnings`。业务错误返回退出码 2 及 `code`、`message`、`recovery`、`details`；意外错误也包装为稳定 JSON，避免宿主只能解析 traceback。
+
+JSON 是 Agent 与引擎之间的接口，不是默认面向学生的呈现格式。除非用户要求调试或导出，Skill 只呈现与当前决策有关的少量字段。
 
 ## 兼容与隐私
 

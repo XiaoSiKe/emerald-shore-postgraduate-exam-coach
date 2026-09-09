@@ -1,4 +1,4 @@
-"""Command-line interface with stable JSON output."""
+"""提供稳定 JSON 输出的命令行接口。"""
 
 from __future__ import annotations
 
@@ -28,6 +28,14 @@ from .service import (
 )
 
 
+def configure_utf8_stdio() -> None:
+    """让中文帮助和 JSON 在 Windows 管道与终端中稳定输出。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="backslashreplace")
+
+
 def emit_json(payload, stream) -> None:
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     encoding = getattr(stream, "encoding", None) or "utf-8"
@@ -41,7 +49,7 @@ def emit_json(payload, stream) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="emerald.py",
-        description="Emerald Shore Initiative · Postgraduate Entrance Exam Sprint Coach",
+        description="青岸计划 · 考研突击冲刺 Agent Skill 的本地证据引擎",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -217,6 +225,7 @@ def dispatch(args: argparse.Namespace):
 
 
 def main(argv=None) -> int:
+    configure_utf8_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

@@ -1,6 +1,6 @@
-name: Method or source update
+name: 方法或来源更新
 description: 更新学习科学、考试政策或开源来源
-title: "[Source] "
+title: "[来源] "
 labels: ["documentation"]
 body:
   - type: input
