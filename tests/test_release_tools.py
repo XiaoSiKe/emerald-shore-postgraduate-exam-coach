@@ -45,8 +45,8 @@ class ReleaseToolTests(unittest.TestCase):
             self.assertTrue(destination.with_suffix(".zip.sha256").exists())
             with zipfile.ZipFile(destination) as archive:
                 roots = {name.split("/", 1)[0] for name in archive.namelist()}
-                self.assertEqual(roots, {"qingan-kaoyan-coach"})
-                self.assertIn("qingan-kaoyan-coach/SKILL.md", archive.namelist())
+                self.assertEqual(roots, {"emerald-shore-postgraduate-exam-coach"})
+                self.assertIn("emerald-shore-postgraduate-exam-coach/SKILL.md", archive.namelist())
                 self.assertFalse(any("tests/" in name or "eval/" in name for name in archive.namelist()))
 
 

@@ -1,8 +1,8 @@
 import unittest
 from datetime import date, timedelta
 
-from qingan.errors import QinganError
-from qingan.planner import build_plan, determine_phase, due_reviews, rank_subjects, update_review_item
+from emerald_shore.errors import EmeraldError
+from emerald_shore.planner import build_plan, determine_phase, due_reviews, rank_subjects, update_review_item
 
 
 def subject(identifier, name, maximum, baseline, target, kind="memory", hours=None):
@@ -38,7 +38,7 @@ class PhaseTests(unittest.TestCase):
                 self.assertEqual(actual["code"], code)
 
     def test_past_exam_date_is_rejected(self):
-        with self.assertRaises(QinganError) as caught:
+        with self.assertRaises(EmeraldError) as caught:
             determine_phase("2026-01-01", date(2026, 1, 1))
         self.assertEqual(caught.exception.code, "exam_date_not_future")
 

@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version=$(python -c "from qingan import __version__; print(__version__)")
+          version=$(python -c "from emerald_shore import __version__; print(__version__)")
           test "${GITHUB_REF_NAME}" = "v${version}"
       - name: Test and build
         run: |
@@ -33,6 +33,6 @@ jobs:
         shell: bash
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
-            dist/qingan-kaoyan-coach-${GITHUB_REF_NAME}.zip \
-            dist/qingan-kaoyan-coach-${GITHUB_REF_NAME}.zip.sha256 \
+            dist/emerald-shore-postgraduate-exam-coach-${GITHUB_REF_NAME}.zip \
+            dist/emerald-shore-postgraduate-exam-coach-${GITHUB_REF_NAME}.zip.sha256 \
             --clobber

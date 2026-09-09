@@ -1,4 +1,4 @@
-"""稳定 JSON 输出的命令行界面。"""
+"""Command-line interface with stable JSON output."""
 
 from __future__ import annotations
 
@@ -7,8 +7,25 @@ import json
 import sys
 
 from . import __version__
-from .errors import QinganError
-from .service import add_subject, checkpoint, ingest, init, log_task, make_plan, review, status, today
+from .errors import EmeraldError
+from .service import (
+    add_subject,
+    add_topic,
+    checkpoint,
+    drill,
+    ingest,
+    init,
+    log_task,
+    make_plan,
+    migrate,
+    record_attempt,
+    review,
+    set_focus,
+    status,
+    today,
+    update_topic,
+    weekly_review,
+)
 
 
 def emit_json(payload, stream) -> None:
@@ -22,7 +39,10 @@ def emit_json(payload, stream) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="qingan.py", description="青岸计划·考研冲刺教练本地效率引擎")
+    parser = argparse.ArgumentParser(
+        prog="emerald.py",
+        description="Emerald Shore Initiative · Postgraduate Entrance Exam Sprint Coach",
+    )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -30,7 +50,10 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("workspace")
     init_parser.add_argument("--exam-date", required=True)
     init_parser.add_argument("--daily-hours", required=True, type=float)
-    init_parser.add_argument("--target", default="考研初试")
+    init_parser.add_argument("--target", default="全国硕士研究生招生考试初试")
+
+    migrate_parser = subparsers.add_parser("migrate", help="从 V0.1 .qingan 工作区无损迁移")
+    migrate_parser.add_argument("workspace")
 
     subject_parser = subparsers.add_parser("subject", help="管理科目")
     subject_sub = subject_parser.add_subparsers(dest="subject_command", required=True)
@@ -47,6 +70,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subject_add.add_argument("--estimated-hours", type=float)
 
+    topic_parser = subparsers.add_parser("topic", help="管理科目内的高价值专题")
+    topic_sub = topic_parser.add_subparsers(dest="topic_command", required=True)
+    topic_add = topic_sub.add_parser("add", help="添加专题得分地图项")
+    topic_add.add_argument("workspace")
+    topic_add.add_argument("--subject", required=True)
+    topic_add.add_argument("--name", required=True)
+    topic_add.add_argument("--weight", required=True, type=float)
+    topic_add.add_argument("--mastery", required=True, type=float)
+    topic_add.add_argument("--confidence", default=0.5, type=float)
+    topic_add.add_argument("--estimated-hours", type=float)
+    topic_update = topic_sub.add_parser("update", help="更新专题权重、掌握度或证据置信度")
+    topic_update.add_argument("workspace")
+    topic_update.add_argument("--subject", required=True)
+    topic_update.add_argument("--name", required=True)
+    topic_update.add_argument("--weight", type=float)
+    topic_update.add_argument("--mastery", type=float)
+    topic_update.add_argument("--confidence", type=float)
+    topic_update.add_argument("--estimated-hours", type=float)
+
     ingest_parser = subparsers.add_parser("ingest", help="本地材料建库")
     ingest_parser.add_argument("workspace")
     ingest_parser.add_argument("inputs", nargs="+")
@@ -55,10 +97,35 @@ def build_parser() -> argparse.ArgumentParser:
         default="user_material",
         choices=("user_material", "past_paper", "official", "external_aid"),
     )
+    ingest_parser.add_argument("--subject")
+    ingest_parser.add_argument("--topic")
 
-    for name in ("plan", "today", "replan", "review", "status"):
+    for name in ("plan", "today", "replan", "review", "weekly", "status"):
         command_parser = subparsers.add_parser(name)
         command_parser.add_argument("workspace")
+
+    drill_parser = subparsers.add_parser("drill", help="选择一道不泄露答案的来源题")
+    drill_parser.add_argument("workspace")
+    drill_parser.add_argument("--subject", required=True)
+    drill_parser.add_argument("--topic")
+
+    attempt_parser = subparsers.add_parser("attempt", help="记录一道来源题的独立作答结果")
+    attempt_parser.add_argument("workspace")
+    attempt_parser.add_argument("--question-id", required=True)
+    attempt_parser.add_argument("--result", required=True, choices=("correct", "partial", "wrong"))
+    attempt_parser.add_argument("--minutes", required=True, type=int)
+    attempt_parser.add_argument(
+        "--error-type",
+        choices=("knowledge_gap", "reasoning", "procedure", "careless", "time_pressure"),
+    )
+    attempt_parser.add_argument("--note")
+
+    focus_parser = subparsers.add_parser("focus", help="把今日任务变成 if–then 启动协议")
+    focus_parser.add_argument("workspace")
+    focus_parser.add_argument("--task-id", required=True)
+    focus_parser.add_argument("--when", required=True)
+    focus_parser.add_argument("--where", required=True)
+    focus_parser.add_argument("--obstacle")
 
     log_parser = subparsers.add_parser("log", help="记录任务结果")
     log_parser.add_argument("workspace")
@@ -83,6 +150,8 @@ def build_parser() -> argparse.ArgumentParser:
 def dispatch(args: argparse.Namespace):
     if args.command == "init":
         return init(args.workspace, args.exam_date, args.daily_hours, args.target)
+    if args.command == "migrate":
+        return migrate(args.workspace)
     if args.command == "subject" and args.subject_command == "add":
         return add_subject(
             args.workspace,
@@ -93,8 +162,28 @@ def dispatch(args: argparse.Namespace):
             args.kind,
             args.estimated_hours,
         )
+    if args.command == "topic" and args.topic_command == "add":
+        return add_topic(
+            args.workspace,
+            args.subject,
+            args.name,
+            args.weight,
+            args.mastery,
+            args.confidence,
+            args.estimated_hours,
+        )
+    if args.command == "topic" and args.topic_command == "update":
+        return update_topic(
+            args.workspace,
+            args.subject,
+            args.name,
+            args.weight,
+            args.mastery,
+            args.confidence,
+            args.estimated_hours,
+        )
     if args.command == "ingest":
-        return ingest(args.workspace, args.inputs, args.evidence_level)
+        return ingest(args.workspace, args.inputs, args.evidence_level, args.subject, args.topic)
     if args.command == "plan":
         return make_plan(args.workspace, "manual")
     if args.command == "today":
@@ -103,13 +192,28 @@ def dispatch(args: argparse.Namespace):
         return make_plan(args.workspace, "replan")
     if args.command == "log":
         return log_task(args.workspace, args.task_id, args.minutes, args.result, args.error_type, args.note)
+    if args.command == "drill":
+        return drill(args.workspace, args.subject, args.topic)
+    if args.command == "attempt":
+        return record_attempt(
+            args.workspace,
+            args.question_id,
+            args.result,
+            args.minutes,
+            args.error_type,
+            args.note,
+        )
+    if args.command == "focus":
+        return set_focus(args.workspace, args.task_id, args.when, args.where, args.obstacle)
     if args.command == "checkpoint":
         return checkpoint(args.workspace, args.subject, args.score, args.max_score, args.minutes)
     if args.command == "review":
         return review(args.workspace)
+    if args.command == "weekly":
+        return weekly_review(args.workspace)
     if args.command == "status":
         return status(args.workspace)
-    raise QinganError("unknown_command", "未知命令。", "运行 qingan.py --help。")
+    raise EmeraldError("unknown_command", "未知命令。", "运行 emerald.py --help。")
 
 
 def main(argv=None) -> int:
@@ -119,11 +223,11 @@ def main(argv=None) -> int:
         payload = dispatch(args)
         emit_json(payload, sys.stdout)
         return 0
-    except QinganError as exc:
+    except EmeraldError as exc:
         emit_json(exc.as_dict(), sys.stderr)
         return 2
     except Exception as exc:  # 防止 Agent 调用方收到非结构化回溯
-        payload = QinganError(
+        payload = EmeraldError(
             "internal_error",
             "发生未预期错误。",
             "保留工作区并提交错误信息；不要删除原始材料。",

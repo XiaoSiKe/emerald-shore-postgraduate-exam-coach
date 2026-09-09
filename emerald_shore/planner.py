@@ -1,4 +1,4 @@
-"""冲刺阶段、优先级、复习队列和每日任务。"""
+"""Sprint phases, priority, review scheduling, and daily tasks."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import math
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from .errors import QinganError
+from .errors import EmeraldError
 
 KINDS = {"memory", "understanding", "calculation", "writing", "language", "timed"}
 KIND_LABELS = {
@@ -32,7 +32,7 @@ def determine_phase(exam_date: str, today: date | None = None) -> dict[str, Any]
     target = date.fromisoformat(exam_date)
     days = (target - current).days
     if days < 1:
-        raise QinganError(
+        raise EmeraldError(
             "exam_date_not_future",
             "考试日期已经到达或过去。",
             "更新 profile.json 中的考试日期后重新规划。",
@@ -70,11 +70,54 @@ def _mistake_counts(mistakes: list[dict[str, Any]]) -> dict[str, int]:
     return counts
 
 
+def _topic_mistake_counts(mistakes: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in mistakes:
+        topic_id = row.get("topic_id")
+        if topic_id:
+            counts[topic_id] = counts.get(topic_id, 0) + 1
+    return counts
+
+
+def rank_topics(
+    topics: list[dict[str, Any]],
+    mistakes: list[dict[str, Any]],
+    subject_id: str | None = None,
+) -> list[dict[str, Any]]:
+    candidates = [item for item in topics if subject_id is None or item.get("subject_id") == subject_id]
+    if not candidates:
+        return []
+    counts = _topic_mistake_counts(mistakes)
+    has_all_costs = all(item.get("estimated_hours") for item in candidates)
+    ranked = []
+    for topic in candidates:
+        mastery = min(1.0, max(0.0, float(topic.get("mastery", 0.0))))
+        weight = max(0.0, float(topic.get("weight", 1.0)))
+        confidence = min(1.0, max(0.1, float(topic.get("confidence", 0.5))))
+        error_bonus = 1.0 + min(counts.get(topic["id"], 0), 5) * 0.10
+        if has_all_costs:
+            time_cost = max(1.0, math.sqrt(float(topic["estimated_hours"])))
+            basis = "quantitative"
+        else:
+            time_cost = 1.0
+            basis = "partial-no-time-cost"
+        priority = weight * (1.0 - mastery) * confidence * error_bonus / time_cost
+        ranked.append(
+            {
+                **topic,
+                "priority": round(priority, 6),
+                "priority_basis": basis,
+                "mistake_count": counts.get(topic["id"], 0),
+            }
+        )
+    return sorted(ranked, key=lambda item: (-item["priority"], item["name"]))
+
+
 def rank_subjects(
     subjects: list[dict[str, Any]], mistakes: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
     if not subjects:
-        raise QinganError(
+        raise EmeraldError(
             "no_subjects",
             "还没有科目，无法生成冲刺计划。",
             "先使用 subject add 添加至少一门科目。",
@@ -137,6 +180,7 @@ def build_plan(
     review_queue: list[dict[str, Any]],
     reason: str,
     today: date | None = None,
+    topics: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     current = today or date.today()
     phase = determine_phase(profile["exam_date"], current)
@@ -151,11 +195,14 @@ def build_plan(
             names.append(subject_by_id.get(item.get("subject_id"), item.get("label", "待复习项")))
         specs.append(("review", None, f"闭卷提取到期内容：{'、'.join(dict.fromkeys(names))}"))
     main = ranked[0]
+    ranked_topics = rank_topics(topics or [], mistakes, main["id"])
+    main_topic = ranked_topics[0] if ranked_topics else None
+    topic_phrase = f"的「{main_topic['name']}」专题" if main_topic else ""
     specs.append(
         (
             "main",
             main["id"],
-            f"主攻 {main['name']}：围绕 {KIND_LABELS[main['kind']]}薄弱点完成一次可判定训练",
+            f"主攻 {main['name']}{topic_phrase}：围绕 {KIND_LABELS[main['kind']]}薄弱点完成一次可判定训练",
         )
     )
     for subject in ranked[1:]:
@@ -173,15 +220,16 @@ def build_plan(
     tasks = []
     for index, ((role, subject_id, title), planned) in enumerate(zip(specs, minutes), 1):
         task = {
-                "id": stable_id(current.isoformat(), role, subject_id or "all"),
-                "order": index,
-                "role": role,
-                "subject_id": subject_id,
-                "title": title,
-                "planned_minutes": planned,
-                "verification": "闭卷作答、限时题或可核验产出；仅阅读不算完成",
-                "status": "pending",
-            }
+            "id": stable_id(current.isoformat(), role, subject_id or "all"),
+            "order": index,
+            "role": role,
+            "subject_id": subject_id,
+            "topic_id": main_topic["id"] if role == "main" and main_topic else None,
+            "title": title,
+            "planned_minutes": planned,
+            "verification": "闭卷作答、限时题或可核验产出；仅阅读不算完成",
+            "status": "pending",
+        }
         if role == "review":
             task["review_keys"] = [item["key"] for item in due[:6] if item.get("key")]
         tasks.append(task)
@@ -191,7 +239,7 @@ def build_plan(
     if phase["days_remaining"] > 120:
         warnings.append("距离考试超过典型冲刺窗口，当前按基础重建阶段运行。")
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "plan_date": current.isoformat(),
         "reason": reason,
@@ -200,6 +248,8 @@ def build_plan(
         "buffer_ratio": profile.get("buffer_ratio", 0.15),
         "main_subject_id": main["id"],
         "main_subject_name": main["name"],
+        "main_topic_id": main_topic["id"] if main_topic else None,
+        "main_topic_name": main_topic["name"] if main_topic else None,
         "maintenance_subject_ids": [item["id"] for item in ranked[1:3]],
         "ranked_subjects": [
             {
@@ -211,6 +261,17 @@ def build_plan(
                 "mistake_count": item["mistake_count"],
             }
             for item in ranked
+        ],
+        "ranked_topics": [
+            {
+                "id": item["id"],
+                "name": item["name"],
+                "priority": item["priority"],
+                "priority_basis": item["priority_basis"],
+                "mastery": item.get("mastery", 0.0),
+                "mistake_count": item["mistake_count"],
+            }
+            for item in ranked_topics
         ],
         "tasks": tasks,
         "warnings": warnings,
@@ -224,9 +285,11 @@ def update_review_item(
     current: date | None = None,
 ) -> list[dict[str, Any]]:
     today = current or date.today()
-    key = task.get("review_key") or (
-        f"subject:{task['subject_id']}" if task.get("subject_id") else task["id"]
-    )
+    key = task.get("review_key")
+    if not key and task.get("topic_id"):
+        key = f"topic:{task['topic_id']}"
+    if not key:
+        key = f"subject:{task['subject_id']}" if task.get("subject_id") else task["id"]
     existing = next((item for item in queue if item.get("key") == key), None)
     if result == "skipped":
         return queue

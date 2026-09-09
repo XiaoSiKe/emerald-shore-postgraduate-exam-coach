@@ -1,4 +1,4 @@
-"""本地材料扫描、文本抽取、去重和题目定位。"""
+"""Local material scanning, extraction, deduplication, and question indexing."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Iterable
 from xml.etree import ElementTree
 
-from .errors import QinganError
+from .errors import EmeraldError
 from .planner import stable_id
 from .state import atomic_write_text, now_iso
 
@@ -93,7 +93,7 @@ def extract_text(path: Path) -> tuple[str, list[str]]:
             return "", [f"PPTX 无法解析：{exc}"]
     if suffix == ".pdf":
         return _pdf_text(path)
-    raise QinganError(
+    raise EmeraldError(
         "unsupported_material",
         f"暂不支持材料格式：{suffix or '(无扩展名)'}",
         "转换为 PDF、DOCX、PPTX、TXT、Markdown 或 HTML 后重试。",
@@ -105,7 +105,7 @@ def iter_material_files(inputs: Iterable[str], state_root: Path) -> list[Path]:
     for raw in inputs:
         item = Path(raw).expanduser().resolve()
         if not item.exists():
-            raise QinganError(
+            raise EmeraldError(
                 "material_not_found",
                 f"材料不存在：{item}",
                 "核对路径后重新运行 ingest。",
@@ -124,7 +124,12 @@ def iter_material_files(inputs: Iterable[str], state_root: Path) -> list[Path]:
     return sorted(set(files))
 
 
-def extract_questions(text: str, source_id: str) -> list[dict[str, Any]]:
+def extract_questions(
+    text: str,
+    source_id: str,
+    subject_id: str | None = None,
+    topic_id: str | None = None,
+) -> list[dict[str, Any]]:
     lines = text.splitlines()
     starts = [index for index, line in enumerate(lines) if QUESTION_RE.match(line)]
     questions = []
@@ -137,6 +142,8 @@ def extract_questions(text: str, source_id: str) -> list[dict[str, Any]]:
             {
                 "id": stable_id(source_id, str(start + 1), block[:80]),
                 "source_id": source_id,
+                "subject_id": subject_id,
+                "topic_id": topic_id,
                 "locator": f"line:{start + 1}",
                 "text": block[:4000],
                 "answer": None,
@@ -152,8 +159,10 @@ def ingest_files(
     existing_sources: list[dict[str, Any]],
     existing_questions: list[dict[str, Any]],
     evidence_level: str,
+    subject_id: str | None = None,
+    topic_id: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[str]]:
-    by_digest = {item.get("sha256") for item in existing_sources}
+    by_digest = {item.get("sha256"): item for item in existing_sources}
     added = []
     warnings = []
     materials_dir = state_root / "materials"
@@ -161,7 +170,22 @@ def ingest_files(
     for path in paths:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest in by_digest:
-            warnings.append(f"跳过重复材料：{path}")
+            existing = by_digest[digest]
+            changed_binding = False
+            if subject_id and existing.get("subject_id") != subject_id:
+                existing["subject_id"] = subject_id
+                changed_binding = True
+            if topic_id and existing.get("topic_id") != topic_id:
+                existing["topic_id"] = topic_id
+                changed_binding = True
+            if changed_binding:
+                for question in existing_questions:
+                    if question.get("source_id") == existing.get("id"):
+                        question["subject_id"] = subject_id
+                        question["topic_id"] = topic_id
+                warnings.append(f"更新重复材料的科目/专题绑定：{path}")
+            else:
+                warnings.append(f"跳过重复材料：{path}")
             continue
         text, file_warnings = extract_text(path)
         source_id = stable_id(digest, path.name)
@@ -174,7 +198,7 @@ def ingest_files(
             "---\n\n"
         )
         atomic_write_text(derived_path, header + text)
-        questions = extract_questions(text, source_id)
+        questions = extract_questions(text, source_id, subject_id, topic_id)
         record = {
             "id": source_id,
             "path": str(path),
@@ -184,6 +208,8 @@ def ingest_files(
             "size_bytes": path.stat().st_size,
             "sha256": digest,
             "evidence_level": evidence_level,
+            "subject_id": subject_id,
+            "topic_id": topic_id,
             "ingested_at": now_iso(),
             "text_chars": len(text),
             "question_count": len(questions),
@@ -191,7 +217,7 @@ def ingest_files(
         }
         existing_sources.append(record)
         existing_questions.extend(questions)
-        by_digest.add(digest)
+        by_digest[digest] = record
         added.append(record)
         warnings.extend(f"{path.name}: {warning}" for warning in file_warnings)
     return existing_sources, existing_questions, added, warnings

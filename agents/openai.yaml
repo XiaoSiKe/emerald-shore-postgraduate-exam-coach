@@ -1,7 +1,7 @@
 interface:
-  display_name: "青岸计划·考研冲刺教练"
-  short_description: "用证据诊断、主动回忆与动态复盘推进考研冲刺"
+  display_name: "青岸计划 · Emerald Shore"
+  short_description: "研究生入学考试的专题级冲刺与自我调节教练"
   brand_color: "#0F766E"
-  default_prompt: "使用 $qingan-kaoyan-coach 根据我的考试日期、科目和当前水平，建立并执行今天的考研冲刺计划。"
+  default_prompt: "使用 $emerald-shore-postgraduate-exam-coach 根据我的考试日期、科目、专题掌握度和真实材料，建立今天的研究生入学考试冲刺闭环。"
 policy:
   allow_implicit_invocation: true

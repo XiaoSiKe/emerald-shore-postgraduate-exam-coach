@@ -47,6 +47,31 @@
       "repo": "leezythu/maoxuan-skill",
       "commit": "4376a65020b1fd96af65052ccd30accaddedc3f1",
       "license": "MIT"
+    },
+    {
+      "repo": "mohitagw15856/pm-claude-skills",
+      "commit": "5a0326ce34b44c015fc26b5c28f6118092c806e4",
+      "path": "skills/exam-study-plan/SKILL.md",
+      "license": "MIT"
+    },
+    {
+      "repo": "open-spaced-repetition/py-fsrs",
+      "commit": "81765cf8eb6ebb422ce36194372074fb0c8a08b2",
+      "path": "README.md",
+      "license": "MIT",
+      "policy": "concept-only-no-runtime-dependency"
+    },
+    {
+      "repo": "24kchengYe/human-skill-tree",
+      "commit": "50cb585c5186c05ed4b6c5d4df2ca34476379064",
+      "path": "skills/00-learning-how-to-learn/SKILL.md",
+      "license": "MIT OR AGPL-3.0"
+    },
+    {
+      "repo": "GarethManning/education-agent-skills",
+      "commit": "6bbbce418f82e11044009c9f3b7373a354de5bd0",
+      "license": "CC-BY-SA-4.0",
+      "policy": "research-only-no-copy"
     }
   ]
 }
