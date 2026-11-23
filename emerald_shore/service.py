@@ -871,10 +871,14 @@ def _dated_rows(rows: list[dict[str, Any]], start: date, end: date) -> list[dict
     return result
 
 
-def _efficiency_snapshot(root: Path, days: int) -> dict[str, Any]:
+def _efficiency_snapshot(
+    root: Path, days: int, *, full_ledger: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     end = date.today()
     start = end - timedelta(days=days - 1)
-    ledger = _dated_rows(read_jsonl(root / "ledger.jsonl"), start, end)
+    if full_ledger is None:
+        full_ledger = read_jsonl(root / "ledger.jsonl")
+    ledger = _dated_rows(full_ledger, start, end)
     mistakes = _dated_rows(read_jsonl(root / "mistakes.jsonl"), start, end)
     task_rows = [row for row in ledger if row.get("type") == "task"]
     attempt_rows = [row for row in ledger if row.get("type") == "question-attempt"]
@@ -1100,14 +1104,15 @@ def status(raw_workspace: str) -> dict[str, Any]:
     focus = read_json(root / "focus.json", {})
     phase = determine_phase(profile["exam_date"])
     adherence = _adherence(ledger)
-    efficiency = _efficiency_snapshot(root, 7)
+    efficiency = _efficiency_snapshot(root, 7, full_ledger=ledger)
+    due_count = len(due_reviews(queue))
     warnings = []
     if adherence is not None and adherence < 0.60:
         warnings.append("近 7 天执行率低于 60%；建议缩小任务并运行 replan，不做人格归因。")
     return _response(
         "status",
         workspace,
-        summary=f"距考试 {phase['days_remaining']} 天；{len(subjects)} 门科目；{len(due_reviews(queue))} 个到期复习项。",
+        summary=f"距考试 {phase['days_remaining']} 天；{len(subjects)} 门科目；{due_count} 个到期复习项。",
         next_action=plan.get("tasks", [{}])[0].get("title") if plan.get("tasks") else "添加科目并运行 plan。",
         warnings=warnings,
         profile=profile,
@@ -1118,7 +1123,7 @@ def status(raw_workspace: str) -> dict[str, Any]:
         adherence_7d=adherence,
         efficiency_diagnosis=efficiency["diagnosis"],
         efficiency_label=efficiency["diagnosis_label"],
-        due_review_count=len(due_reviews(queue)),
+        due_review_count=due_count,
         source_count=len(sources),
         topic_count=len(topics),
         focus=focus or None,
