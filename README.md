@@ -1,24 +1,22 @@
-<div align="center">
+<h1 align="center">🌊 青岸计划·考研冲刺教练</h1>
 
-# 🌊 青岸计划·考研冲刺教练
+<p align="center"><strong>一万年太久，只争朝夕！</strong></p>
 
-### 一万年太久，只争朝夕！
+<p align="center"><strong>面向大学生日常、适配所有学校与专业的通用型考研冲刺 Agent Skill</strong></p>
 
-#### 面向大学生日常、适配所有学校与专业的通用型考研冲刺 Agent Skill
+<p align="center"><strong>Emerald Shore Initiative · Postgraduate Entrance Exam Sprint Coach</strong></p>
 
-**Emerald Shore Initiative · Postgraduate Entrance Exam Sprint Coach**
+<p align="center">
+  <a href="https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/workflows/ci.yml"><img src="https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/releases"><img src="https://img.shields.io/github/v/release/XiaoSiKe/emerald-shore-postgraduate-exam-coach?color=0F766E" alt="Release"></a>
+  <a href="#-安装"><img src="https://img.shields.io/badge/Agent-Skill-6C47FF" alt="Agent Skill"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-3776AB" alt="Python"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-black" alt="License"></a>
+</p>
 
-[![CI](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/workflows/ci.yml/badge.svg)](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/XiaoSiKe/emerald-shore-postgraduate-exam-coach?color=0F766E)](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/releases)
-[![Agent Skill](https://img.shields.io/badge/Agent-Skill-6C47FF)](#-安装)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-black)](LICENSE)
+<p align="center">哲学策略 · 校园节律 · 证据训练 · 效率评估 · 情绪支持 · 本地闭环</p>
 
-哲学策略 · 校园节律 · 证据训练 · 效率评估 · 情绪支持 · 本地闭环
-
-[🧭 它解决什么](#-它解决什么) · [🧩 系统总览](#-统一系统总览四层十一系统) · [📚 理论与方法](#-理论支持与经典方法) · [🚀 安装](#-安装) · [🧪 质量与验证](#-质量与验证)
-
-</div>
+<p align="center"><a href="#-它解决什么">🧭 它解决什么</a> · <a href="#-统一系统总览四层十一系统">🧩 系统总览</a> · <a href="#-理论支持与经典方法">📚 理论与方法</a> · <a href="#-安装">🚀 安装</a> · <a href="#-质量与验证">🧪 质量与验证</a></p>
 
 ---
 
@@ -53,6 +51,32 @@
 | 解释听懂了，换一道题又不会 | 先讲本质和类比边界，再让你自己讲回去 | 能复述、能做题、能迁移的理解证据 |
 | 知道该学却启动不了 | 把任务改成具体时间、地点和 5 分钟动作 | 可执行的 if–then 启动协议 |
 | 越临近考试越焦虑 | 校准现实、缩小下一步、保护睡眠底线 | 不靠口号的降阶行动 |
+
+## V0.11.0 旧档续接与恢复
+
+派生计划损坏时可备份并按同日快照恢复。权威账本末尾截断时，从明确提供且保留有效记录的完整备份恢复。恢复后可继续核对主攻、任务日志、到期复习和复盘。
+
+## V0.10.0 错题回测与掌握证据
+
+把照解析订正、同日重做、未见题独立作答和到期回测分开。掌握度与排期按合格独立证据更新，专题稳定需要跨题和跨日的成功作答。
+
+## V0.9.0 周复盘按计划留档
+
+逐日保存最终计划。回顾已经结束的日期时包含没打卡的已排任务，今天仍开放的任务单列。实验、实习或加班挤掉时间时，可以让教练把当天缩成一个主攻；周复盘会沿用这项安排。
+
+## V0.8.0 院校自命题范围
+
+同一个科目代码可能对应不同大学的考试范围。自命题科目按院校、专业、招生年度和代码关联资料、专题和整卷成绩。切换目标后，旧数据保留供回查，当前工作从新范围和新基线开始。
+
+## V0.7.0 单科门槛与新题复测
+
+告诉教练各科参考门槛、合计目标和最近同口径整卷成绩。若某科可能卡在门槛附近，计划会先安排该科的风险校准。各科最新分数的合计可用于分配时间，整卷波动和短小测验各自保留。做错后可以直接换一道未展示的来源题验证方法。
+
+## V0.6.0 当天变更与测验口径
+
+临时只有 20 分钟时，说“今天还剩 20 分钟，请重排”。教练会按今天的剩余时间安排动作，次日恢复原节律。今天完全无空可以设为休息日，到期内容会留在复习队列。今日行动单也会显示已经记录的任务结果。
+
+整卷成绩校准整科基线，专题小测保留原始得分。效率报告按卷组和用时比较整卷趋势。来源题会过滤常见的答案与解析标记，有图表缺失或答案未分隔时，先核对原材料再出题。
 
 ## 🗣️ 直接这样开始
 
@@ -250,9 +274,9 @@ npx skills list
 
 ### 下载 Release
 
-也可以从 [Releases](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/releases) 下载 `emerald-shore-postgraduate-exam-coach-v0.5.0.zip`。解压后，把完整的 `emerald-shore-postgraduate-exam-coach/` 文件夹放入宿主的 Skill 目录。
+也可以从 [Releases](https://github.com/XiaoSiKe/emerald-shore-postgraduate-exam-coach/releases) 下载对应版本的 Skill ZIP。解压后，把完整的 `emerald-shore-postgraduate-exam-coach/` 文件夹放入宿主的 Skill 目录。
 
-运行本地证据引擎需要 Python 3.9+。PDF 文字提取建议安装可选依赖：
+本地证据引擎支持 Python 3.9+。仅有对话或附件的宿主可继续讲题、批改和临时规划。PDF 文字提取建议安装可选依赖：
 
 ```bash
 python -m pip install pypdf

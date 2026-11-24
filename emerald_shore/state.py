@@ -8,7 +8,7 @@ import shutil
 import tempfile
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 from .errors import EmeraldError
 
@@ -40,11 +40,11 @@ def state_path(workspace: Path) -> Path:
     return workspace / STATE_DIR
 
 
-def atomic_write_text(path: Path, content: str) -> None:
+def atomic_write_bytes(path: Path, content: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=str(path.parent))
     try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+        with os.fdopen(fd, "wb") as handle:
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
@@ -57,14 +57,20 @@ def atomic_write_text(path: Path, content: str) -> None:
         raise
 
 
-def atomic_write_json(path: Path, value: Any) -> None:
-    atomic_write_text(path, json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+def atomic_write_text(path: Path, content: str) -> None:
+    atomic_write_bytes(path, content.encode("utf-8"))
+
+
+def atomic_write_json(path: Path, value: Any, *, indent: int | None = 2) -> None:
+    atomic_write_text(path, json.dumps(value, ensure_ascii=False, indent=indent) + "\n")
 
 
 def append_jsonl(path: Path, value: dict[str, Any]) -> None:
-    existing = path.read_text(encoding="utf-8") if path.exists() else ""
-    line = json.dumps(value, ensure_ascii=False, sort_keys=True)
-    atomic_write_text(path, existing + line + "\n")
+    read_jsonl(path)
+    existing = path.read_bytes() if path.exists() else b""
+    separator = b"\n" if existing and not existing.endswith(b"\n") else b""
+    line = json.dumps(value, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    atomic_write_bytes(path, existing + separator + line + b"\n")
 
 
 def read_json(path: Path, default: Any = None) -> Any:
@@ -82,28 +88,43 @@ def read_json(path: Path, default: Any = None) -> Any:
         raise EmeraldError(
             "corrupt_state",
             f"状态文件无法解析：{path.name}",
-            "不要覆盖原文件；先从备份恢复，或移走损坏文件后重新初始化。",
+            (
+                "使用 recover 从学习档案和当日快照重建，损坏计划会留备份。"
+                if path.name == "plan.json" else "保留原文件并核对可信备份。"
+            ),
             {"error": str(exc)},
         ) from exc
 
 
+def iter_jsonl(path: Path) -> Iterator[dict[str, Any]]:
+    try:
+        handle = path.open("rb")
+    except FileNotFoundError:
+        return
+    with handle:
+        for line_number, raw in enumerate(handle, 1):
+            line = raw.removesuffix(b"\n")
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+                if not isinstance(row, dict):
+                    raise ValueError("JSONL record is not an object")
+                yield row
+            except (UnicodeDecodeError, ValueError) as exc:
+                raise EmeraldError(
+                    "corrupt_state",
+                    f"状态日志无法解析：{path.name} 第 {line_number} 行",
+                    (
+                        "保留损坏日志。对截断末行，可提供完整备份并运行 recover --ledger-backup。"
+                        if path.name == "ledger.jsonl" else "保留损坏日志并核对完整备份。"
+                    ),
+                    {"error": str(exc)},
+                ) from exc
+
+
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    rows = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        if not line.strip():
-            continue
-        try:
-            rows.append(json.loads(line))
-        except json.JSONDecodeError as exc:
-            raise EmeraldError(
-                "corrupt_state",
-                f"状态日志无法解析：{path.name} 第 {line_number} 行",
-                "保留损坏日志并从最近备份恢复，或删除该行后重试。",
-                {"error": str(exc)},
-            ) from exc
-    return rows
+    return list(iter_jsonl(path))
 
 
 def require_workspace(raw: str | os.PathLike[str]) -> tuple[Path, Path]:
@@ -139,6 +160,7 @@ def initialize_workspace(
     target: str = "全国硕士研究生招生考试初试",
     target_school: str | None = None,
     target_major: str | None = None,
+    admission_year: int | None = None,
 ) -> tuple[Path, list[str]]:
     workspace = workspace_path(raw_workspace)
     try:
@@ -180,6 +202,7 @@ def initialize_workspace(
         "target": target.strip() or "全国硕士研究生招生考试初试",
         "target_school": target_school.strip() if target_school and target_school.strip() else None,
         "target_major": target_major.strip() if target_major and target_major.strip() else None,
+        "admission_year": admission_year,
         "buffer_ratio": 0.15,
         "language": "zh-CN",
         "routine": {

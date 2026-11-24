@@ -104,7 +104,7 @@ def validate(root: Path) -> list[str]:
     if readme_path.exists():
         readme_text = readme_path.read_text(encoding="utf-8")
         for marker in (
-            "# 🌊 青岸计划·考研冲刺教练",
+            '<h1 align="center">🌊 青岸计划·考研冲刺教练</h1>',
             "一万年太久，只争朝夕！",
             "这是一个 **Agent Skill**",
             "不是独立 App",

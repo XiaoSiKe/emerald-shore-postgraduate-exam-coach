@@ -30,11 +30,11 @@ class EfficiencyTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def add_question(self) -> str:
+    def add_question(self, variant=0) -> str:
         material = self.root / "paper.md"
-        material.write_text("第1题 求极限。", encoding="utf-8")
+        material.write_text(f"第1题 求变式 {variant} 的极限。", encoding="utf-8")
         ingest(str(self.workspace), [str(material)], "past_paper", "数学", "微积分")
-        return drill(str(self.workspace), "数学", "微积分")["question"]["id"]
+        return drill(str(self.workspace), "数学", "微积分", fresh=True)["question"]["id"]
 
     def test_insufficient_evidence_does_not_invent_score(self):
         report = efficiency_report(str(self.workspace))["efficiency"]
@@ -57,18 +57,16 @@ class EfficiencyTests(unittest.TestCase):
         self.assertEqual(report["diagnosis"], "input_heavy")
 
     def test_attempt_outcomes_find_accuracy_gap(self):
-        question_id = self.add_question()
-        for _ in range(3):
-            record_attempt(str(self.workspace), question_id, "wrong", 10, "reasoning", "方法选择错误")
+        for index in range(3):
+            record_attempt(str(self.workspace), self.add_question(index), "wrong", 10, "reasoning", "方法选择错误")
         report = efficiency_report(str(self.workspace))["efficiency"]
         self.assertEqual(report["diagnosis"], "accuracy_gap")
         self.assertEqual(report["outcomes"]["wrong"], 3)
         self.assertEqual(report["outcomes"]["correct_rate"], 0)
 
     def test_repeated_error_is_reported_before_checkpoint_gap(self):
-        question_id = self.add_question()
-        for _ in range(2):
-            record_attempt(str(self.workspace), question_id, "partial", 10, "procedure", "步骤不稳定")
+        for index in range(2):
+            record_attempt(str(self.workspace), self.add_question(index), "partial", 10, "procedure", "步骤不稳定")
         report = efficiency_report(str(self.workspace))["efficiency"]
         self.assertEqual(report["diagnosis"], "recurring_error")
         self.assertEqual(report["errors"]["recurring_types"], ["procedure"])

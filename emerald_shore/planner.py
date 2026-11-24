@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from .errors import EmeraldError
+from .target import course_scope
 
 KINDS = {"memory", "understanding", "calculation", "writing", "language", "timed"}
 KIND_LABELS = {
@@ -70,7 +71,7 @@ def campus_day_context(profile: dict[str, Any], current: date) -> dict[str, Any]
     basis = f"routine-{hours_key}"
     try:
         available_hours = float(raw_hours)
-        if available_hours <= 0 or available_hours > 24:
+        if not 0 <= available_hours <= 24:
             raise ValueError
     except (TypeError, ValueError):
         available_hours = float(profile["daily_hours"])
@@ -137,6 +138,91 @@ def rank_topics(
     return sorted(ranked, key=lambda item: (-item["priority"], item["name"]))
 
 
+def _recent_full_scores(subject: dict[str, Any], current: date) -> list[float]:
+    """Return at most three recent full checks with the latest named testing conditions."""
+    recent = []
+    for row in subject.get("score_history", []):
+        if (
+            row.get("scope") == "partial"
+            or row.get("raw_max_score") != float(subject["max_score"])
+            or not isinstance(row.get("normalized_score"), (int, float))
+        ):
+            continue
+        try:
+            day = datetime.fromisoformat(row["recorded_at"]).astimezone().date()
+        except (KeyError, TypeError, ValueError):
+            continue
+        if 0 <= (current - day).days <= 28:
+            recent.append(row)
+    if not recent or recent[-1]["normalized_score"] != subject.get("current_score", subject["baseline"]):
+        return []
+    latest = recent[-1]
+    if not latest.get("series"):
+        return [float(latest["normalized_score"])]
+    matched = [
+        float(row["normalized_score"]) for row in recent
+        if row.get("series") == latest["series"] and row.get("minutes") == latest.get("minutes")
+    ]
+    return matched[-3:]
+
+
+def assess_exam_goals(
+    goals: dict[str, Any], subjects: list[dict[str, Any]], current: date
+) -> dict[str, Any]:
+    floors = goals.get("subject_floors", {})
+    subject_results = {}
+    for subject in subjects:
+        floor = floors.get(subject["id"])
+        if floor is None:
+            continue
+        recorded = subject.get("current_score", subject["baseline"])
+        if recorded is None:
+            subject_results[subject["id"]] = {
+                "name": subject["name"], "reference_floor": floor, "score": None,
+                "status": "needs_current_scope_baseline", "basis": "no-current-scope-baseline",
+                "comparable_scores": [], "observed_spread": None,
+            }
+            continue
+        score = float(recorded)
+        scores = _recent_full_scores(subject, current)
+        spread = round(max(scores) - min(scores), 2) if len(scores) > 1 else None
+        if score < floor:
+            risk = "below_floor"
+        elif score == floor or (spread is not None and score - floor <= spread):
+            risk = "at_risk"
+        else:
+            risk = "above_floor" if scores else "unconfirmed_above_floor"
+        subject_results[subject["id"]] = {
+            "name": subject["name"],
+            "reference_floor": floor,
+            "score": score,
+            "status": risk,
+            "basis": "recent-full-checkpoint" if scores else "unconfirmed-baseline",
+            "comparable_scores": scores,
+            "observed_spread": spread,
+        }
+    target_total = goals.get("total_target")
+    total = None
+    if target_total is not None:
+        scores = [subject.get("current_score", subject["baseline"]) for subject in subjects]
+        observed = round(sum(scores), 2) if all(score is not None for score in scores) else None
+        total = {
+            "target": target_total,
+            "reference_sum": observed,
+            "gap_points": round(max(0.0, target_total - observed), 2) if observed is not None else None,
+            "basis": "sum-of-latest-subject-scores" if observed is not None else "incomplete-current-baselines",
+        }
+    return {"basis": goals.get("basis"), "subjects": subject_results, "total": total}
+
+
+def _floor_priority(subject: dict[str, Any], assessment: dict[str, Any]) -> tuple[int, float]:
+    result = assessment.get(subject["id"], {})
+    tier = {"below_floor": 2, "at_risk": 1}.get(result.get("status"), 0)
+    score = result.get("score")
+    deficit = max(0.0, result["reference_floor"] - score) if score is not None else 0.0
+    return tier, deficit
+
+
 def rank_subjects(
     subjects: list[dict[str, Any]], mistakes: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
@@ -152,13 +238,16 @@ def rank_subjects(
     ranked = []
     for subject in subjects:
         maximum = float(subject["max_score"])
-        current = float(subject.get("current_score", subject["baseline"]))
+        entered = subject.get("current_score", subject["baseline"])
+        current = float(entered) if entered is not None else 0.0
         target = float(subject["target"])
         gap_ratio = max(0.0, target - current) / maximum
         exam_weight = maximum / total_score if total_score else 0.0
         error_bonus = 1.0 + min(counts.get(subject["id"], 0), 5) * 0.08
         prerequisite = 1.15 if subject["kind"] in {"calculation", "language", "understanding"} else 1.0
-        confidence = 1.0 if subject.get("score_history") else 0.8
+        confidence = 1.0 if any(
+            row.get("scope") != "partial" for row in subject.get("score_history", [])
+        ) else 0.8
         estimated_hours = subject.get("estimated_hours")
         if has_all_costs and estimated_hours:
             time_cost = max(1.0, math.sqrt(float(estimated_hours)))
@@ -172,14 +261,16 @@ def rank_subjects(
                 **subject,
                 "priority": round(priority, 6),
                 "priority_basis": basis,
-                "gap_points": round(max(0.0, target - current), 2),
+                "gap_points": round(max(0.0, target - current), 2) if entered is not None else None,
                 "mistake_count": counts.get(subject["id"], 0),
             }
         )
-    return sorted(ranked, key=lambda item: (-item["priority"], -item["gap_points"], item["name"]))
+    return sorted(ranked, key=lambda item: (-item["priority"], -(item["gap_points"] or 0), item["name"]))
 
 
 def _minutes_split(capacity: int, task_count: int, has_reviews: bool) -> list[int]:
+    if task_count == 0:
+        return []
     if task_count == 1:
         return [capacity]
     if has_reviews:
@@ -190,10 +281,10 @@ def _minutes_split(capacity: int, task_count: int, has_reviews: bool) -> list[in
         second = max(1, round((capacity - first) * 0.70))
         return [first, second, capacity - first - second]
     if task_count == 2:
-        first = round(capacity * 0.75)
+        first = min(round(capacity * 0.75), capacity - 1)
         return [first, capacity - first]
-    first = round(capacity * 0.70)
-    second = round(capacity * 0.15)
+    first = min(round(capacity * 0.70), capacity - 2)
+    second = min(max(1, round(capacity * 0.15)), capacity - first - 1)
     return [first, second, capacity - first - second]
 
 
@@ -205,16 +296,30 @@ def build_plan(
     reason: str,
     today: date | None = None,
     topics: list[dict[str, Any]] | None = None,
+    available_minutes: int | None = None,
+    main_only: bool = False,
 ) -> dict[str, Any]:
     current = today or date.today()
     phase = determine_phase(profile["exam_date"], current)
     ranked = rank_subjects(subjects, mistakes)
+    goals = profile.get("exam_goals") or {}
+    assessment = assess_exam_goals(goals, ranked, current)
+    ranked.sort(key=lambda subject: _floor_priority(subject, assessment["subjects"]), reverse=True)
     day_context = campus_day_context(profile, current)
-    capacity = max(
-        1,
-        int(day_context["available_hours"] * 60 * (1 - float(profile.get("buffer_ratio", 0.15)))),
+    day_context["main_only"] = main_only
+    if available_minutes is not None:
+        day_context.update(
+            available_hours=round(available_minutes / 60, 2),
+            capacity_basis="day-override",
+            available_minutes_override=available_minutes,
+        )
+    else:
+        available_minutes = round(day_context["available_hours"] * 60)
+    capacity = (
+        max(1, int(available_minutes * (1 - float(profile.get("buffer_ratio", 0.15)))))
+        if available_minutes else 0
     )
-    due = due_reviews(review_queue, current)
+    due = [] if main_only else due_reviews(review_queue, current)
     specs = []
     if due:
         names = []
@@ -223,17 +328,22 @@ def build_plan(
             names.append(subject_by_id.get(item.get("subject_id"), item.get("label", "待复习项")))
         specs.append(("review", None, f"闭卷提取到期内容：{'、'.join(dict.fromkeys(names))}"))
     main = ranked[0]
+    main_assessment = assessment["subjects"].get(main["id"], {})
+    main_basis = {
+        "below_floor": "below-reference-floor",
+        "at_risk": "near-reference-floor",
+    }.get(main_assessment.get("status"), "subject-target-gap")
+    if main.get("baseline_status") == "needs_current_scope_baseline":
+        main_basis = "current-scope-diagnostic"
+    assessment["main_basis"] = main_basis
     ranked_topics = rank_topics(topics or [], mistakes, main["id"])
     main_topic = ranked_topics[0] if ranked_topics else None
     topic_phrase = f"的「{main_topic['name']}」专题" if main_topic else ""
-    specs.append(
-        (
-            "main",
-            main["id"],
-            f"主攻 {main['name']}{topic_phrase}：围绕 {KIND_LABELS[main['kind']]}薄弱点完成一次可判定训练",
-        )
-    )
-    for subject in ranked[1:]:
+    title = f"主攻 {main['name']}{topic_phrase}：围绕 {KIND_LABELS[main['kind']]}薄弱点完成一次可判定训练"
+    if main_basis == "current-scope-diagnostic":
+        title = f"校准 {main['name']}{topic_phrase}：按当前范围做一次短测，记录用时与首个卡点"
+    specs.append(("main", main["id"], title))
+    for subject in ([] if main_only else ranked[1:]):
         if len(specs) >= 3:
             break
         specs.append(
@@ -243,7 +353,7 @@ def build_plan(
                 f"维持 {subject['name']}：完成短时闭卷回忆或限时练习",
             )
         )
-    specs = specs[: max(1, min(len(specs), capacity))]
+    specs = specs[:capacity]
     minutes = _minutes_split(capacity, len(specs), bool(due))
     tasks = []
     for index, ((role, subject_id, title), planned) in enumerate(zip(specs, minutes), 1):
@@ -260,6 +370,11 @@ def build_plan(
         }
         if role == "review":
             task["review_keys"] = [item["key"] for item in due[:6] if item.get("key")]
+        if subject_id:
+            scoped_subject = next((row for row in subjects if row["id"] == subject_id and row.get("target_specific")), None)
+            if scoped_subject:
+                task["target_scope"] = course_scope(profile, scoped_subject)
+                task["id"] = stable_id(task["id"], str(task["target_scope"]))
         tasks.append(task)
     warnings = []
     if any(item["priority_basis"] != "quantitative" for item in ranked):
@@ -280,6 +395,7 @@ def build_plan(
         "buffer_ratio": profile.get("buffer_ratio", 0.15),
         "main_subject_id": main["id"],
         "main_subject_name": main["name"],
+        "goal_assessment": assessment,
         "main_topic_id": main_topic["id"] if main_topic else None,
         "main_topic_name": main_topic["name"] if main_topic else None,
         "maintenance_subject_ids": [item["id"] for item in ranked[1:3]],
@@ -322,6 +438,8 @@ def update_review_item(
         key = f"topic:{task['topic_id']}"
     if not key:
         key = f"subject:{task['subject_id']}" if task.get("subject_id") else task["id"]
+        if task.get("target_scope"):
+            key += ":" + stable_id(str(task["target_scope"]))
     existing = next((item for item in queue if item.get("key") == key), None)
     if result == "skipped":
         return queue
@@ -334,6 +452,8 @@ def update_review_item(
             "error_count": 0,
             "status": "introduced",
         }
+        if task.get("target_scope"):
+            existing["target_scope"] = task["target_scope"]
         queue.append(existing)
     if result == "complete":
         existing["success_streak"] = int(existing.get("success_streak", 0)) + 1

@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from datetime import date, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 from emerald_shore.errors import EmeraldError
 from emerald_shore.cli import emit_json
@@ -54,6 +55,18 @@ class ServiceFlowTests(unittest.TestCase):
         self.assertEqual(queue[0]["status"], "review-needed")
         self.assertEqual(queue[0]["key"], f"subject:{main['subject_id']}")
 
+    def test_status_shares_one_ledger_read_with_efficiency_snapshot(self):
+        plan = make_plan(str(self.workspace))["plan"]
+        main = next(task for task in plan["tasks"] if task["role"] == "main")
+        log_task(str(self.workspace), main["id"], 15, "complete", None, "闭卷核对")
+        with patch("emerald_shore.service.read_jsonl", wraps=read_jsonl) as read:
+            report = status(str(self.workspace))
+        self.assertEqual(
+            sum(call.args[0].name == "ledger.jsonl" for call in read.call_args_list), 1
+        )
+        self.assertEqual(report["ledger_count"], 1)
+        self.assertEqual(report["adherence_7d"], 1.0)
+
     def test_combined_review_task_advances_existing_items(self):
         first_plan = make_plan(str(self.workspace))["plan"]
         main = next(task for task in first_plan["tasks"] if task["role"] == "main")
@@ -77,6 +90,35 @@ class ServiceFlowTests(unittest.TestCase):
             status(str(self.workspace))
         self.assertEqual(caught.exception.code, "corrupt_state")
         self.assertEqual(profile.read_text(encoding="utf-8"), "{broken")
+
+    def test_today_read_only_returns_current_plan_and_refuses_stale_plan_without_writing(self):
+        state = self.workspace / ".emerald-shore"
+        plan = make_plan(str(self.workspace), "replan", 12, True)["plan"]
+        cmd = [sys.executable, str(ROOT / "emerald.py"), "today", str(self.workspace), "--read-only"]
+
+        def contents():
+            return {path.relative_to(state): path.read_bytes() for path in state.rglob("*") if path.is_file()}
+
+        before = contents()
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["plan"]["tasks"], plan["tasks"])
+        self.assertEqual(contents(), before)
+
+        plan["plan_date"] = (date.today() - timedelta(days=1)).isoformat()
+        (state / "plan.json").write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
+        stale = contents()
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(json.loads(result.stderr)["code"], "today_plan_unavailable")
+        self.assertEqual(contents(), stale)
+
+        (state / "plan.json").write_text("null", encoding="utf-8")
+        invalid = contents()
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(json.loads(result.stderr)["code"], "corrupt_state")
+        self.assertEqual(contents(), invalid)
 
     def test_cli_success_and_error_are_json(self):
         command = [sys.executable, str(ROOT / "emerald.py"), "status", str(self.workspace)]
