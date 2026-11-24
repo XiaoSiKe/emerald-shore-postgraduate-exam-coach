@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             python: "3.9"
           - os: ubuntu-latest
             python: "3.12"
@@ -55,7 +55,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/emerald-shore-install /tmp/emerald-shore-study
-          unzip -q dist/emerald-shore-postgraduate-exam-coach-v0.5.0.zip -d /tmp/emerald-shore-install
+          version=$(python emerald.py --version)
+          unzip -q "dist/emerald-shore-postgraduate-exam-coach-v${version}.zip" -d /tmp/emerald-shore-install
           cd /tmp/emerald-shore-install/emerald-shore-postgraduate-exam-coach
           exam_date=$(date -d "+90 days" +%F)
           python emerald.py --version

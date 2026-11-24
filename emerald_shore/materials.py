@@ -21,6 +21,22 @@ QUESTION_RE = re.compile(
 )
 
 
+SOLUTION_RE = re.compile(
+    r"(?im)^\s*(?:#{1,6}\s*|\*{1,2}\s*)?(?:"
+    r"[【\[]\s*(?:参考答案|正确答案|答案|解析|解答|解题过程)\s*[】\]]|"
+    r"(?:参考答案|正确答案|答案(?:与解析)?|解析|解答|解题过程|answers?|solutions?|explanations?)"
+    r"(?:\*{1,2})?\s*(?:[:：]|$))"
+    r"|[【\[]\s*(?:参考答案|正确答案|答案|解析|解答)\s*[】\]]"
+    r"|[ \t]+(?:参考答案|正确答案|答案|解析|解答)\s*[:：]"
+)
+
+
+def question_stem(text: str) -> str:
+    """保守剥离常见的答案与解析标记，兼容已索引题目。"""
+    marker = SOLUTION_RE.search(text)
+    return (text[:marker.start()] if marker else text).strip()
+
+
 def _decode_text(path: Path) -> str:
     data = path.read_bytes()
     for encoding in ("utf-8", "utf-8-sig", "gb18030"):
@@ -131,12 +147,18 @@ def extract_questions(
     topic_id: str | None = None,
 ) -> list[dict[str, Any]]:
     lines = text.splitlines()
+    # 独立答案区的编号可能与题干相同。遇到答案区标题后停止建题。
+    for index, line in enumerate(lines):
+        if re.fullmatch(r"\s*(?:#{1,6}\s*答案|#{0,6}\s*(?:参考答案|答案与解析|答案汇总|Answer Key))\s*[:：]?\s*", line, re.I):
+            lines = lines[:index]
+            break
     starts = [index for index, line in enumerate(lines) if QUESTION_RE.match(line)]
     questions = []
     for position, start in enumerate(starts):
         end = starts[position + 1] if position + 1 < len(starts) else min(len(lines), start + 30)
         block = "\n".join(lines[start:end]).strip()
-        if not block:
+        stem = question_stem(block)
+        if not stem:
             continue
         questions.append(
             {
@@ -145,7 +167,7 @@ def extract_questions(
                 "subject_id": subject_id,
                 "topic_id": topic_id,
                 "locator": f"line:{start + 1}",
-                "text": block[:4000],
+                "text": stem[:4000],
                 "answer": None,
                 "source_grounded": True,
             }
@@ -182,6 +204,7 @@ def ingest_files(
     classification_confidence: str = "high",
     match_note: str | None = None,
     replace_metadata: bool = False,
+    target_scope: dict[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[str]]:
     by_digest = {item.get("sha256"): item for item in existing_sources}
     added = []
@@ -192,6 +215,9 @@ def ingest_files(
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest in by_digest:
             existing = by_digest[digest]
+            if existing.get("target_scope") is not None and existing["target_scope"] != target_scope:
+                warnings.append(f"保留已有定向材料的原始目标绑定：{path}")
+                continue
             changed_binding = False
             changed_metadata = False
             if subject_id and existing.get("subject_id") != subject_id:
@@ -201,6 +227,9 @@ def ingest_files(
                 existing["topic_id"] = topic_id
                 changed_binding = True
             if replace_metadata:
+                if existing.get("target_scope") != target_scope:
+                    existing["target_scope"] = target_scope
+                    changed_metadata = True
                 if existing.get("classification_confidence") != classification_confidence:
                     existing["classification_confidence"] = classification_confidence
                     changed_metadata = True
@@ -270,6 +299,8 @@ def ingest_files(
             "question_count": len(questions),
             "warnings": file_warnings,
         }
+        if target_scope is not None:
+            record["target_scope"] = target_scope
         existing_sources.append(record)
         existing_questions.extend(questions)
         by_digest[digest] = record

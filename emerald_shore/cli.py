@@ -20,8 +20,10 @@ from .service import (
     make_plan,
     migrate,
     record_attempt,
+    recover,
     review,
     set_focus,
+    set_exam_goals,
     set_profile_context,
     set_routine,
     status,
@@ -40,12 +42,12 @@ def configure_utf8_stdio() -> None:
 
 
 def emit_json(payload, stream) -> None:
-    text = json.dumps(payload, ensure_ascii=False, indent=2)
+    text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     encoding = getattr(stream, "encoding", None) or "utf-8"
     try:
         text.encode(encoding)
     except (LookupError, UnicodeEncodeError):
-        text = json.dumps(payload, ensure_ascii=True, indent=2)
+        text = json.dumps(payload, ensure_ascii=True, separators=(",", ":"))
     print(text, file=stream)
 
 
@@ -64,6 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--target", default="全国硕士研究生招生考试初试")
     init_parser.add_argument("--target-school")
     init_parser.add_argument("--target-major")
+    init_parser.add_argument("--admission-year", type=int)
 
     migrate_parser = subparsers.add_parser("migrate", help="从 V0.1 .qingan 工作区无损迁移")
     migrate_parser.add_argument("workspace")
@@ -75,6 +78,14 @@ def build_parser() -> argparse.ArgumentParser:
     profile_set.add_argument("--target")
     profile_set.add_argument("--target-school")
     profile_set.add_argument("--target-major")
+    profile_set.add_argument("--admission-year", type=int)
+    profile_goals = profile_sub.add_parser("goals", help="设置演练或有依据的参考门槛与总分目标")
+    profile_goals.add_argument("workspace")
+    profile_goals.add_argument("--total-target", type=float)
+    profile_goals.add_argument("--clear-total-target", action="store_true")
+    profile_goals.add_argument("--floor", nargs=2, metavar=("SUBJECT", "SCORE"), action="append")
+    profile_goals.add_argument("--remove-floor", metavar="SUBJECT", action="append")
+    profile_goals.add_argument("--basis", help="目标口径与依据")
 
     routine_parser = subparsers.add_parser("routine", help="管理工作日、周末与校园生活节律")
     routine_sub = routine_parser.add_subparsers(dest="routine_command", required=True)
@@ -101,6 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subject_add.add_argument("--estimated-hours", type=float)
     subject_add.add_argument("--code")
+    subject_add.add_argument("--target-specific", action="store_true", help="院校自命题科目，成绩和材料随目标切换")
 
     topic_parser = subparsers.add_parser("topic", help="管理科目内的高价值专题")
     topic_sub = topic_parser.add_subparsers(dest="topic_command", required=True)
@@ -143,6 +155,21 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("plan", "today", "replan", "review", "weekly", "status"):
         command_parser = subparsers.add_parser(name)
         command_parser.add_argument("workspace")
+        if name == "today":
+            command_parser.add_argument("--read-only", action="store_true", help="只读当日已保存计划")
+        if name == "review":
+            command_parser.add_argument("--through", help="查询到该日为止的到期计划")
+        if name == "replan":
+            command_parser.add_argument("--available-minutes", type=int, help="今天还能学习的分钟数，0 表示休息")
+            mode = command_parser.add_mutually_exclusive_group()
+            mode.add_argument("--main-only", dest="main_only", action="store_const", const=True,
+                              help="今天只安排主攻，暂缓到期复习与维持")
+            mode.add_argument("--normal", dest="main_only", action="store_const", const=False,
+                              help="今天恢复常规任务组合")
+
+    recover_parser = subparsers.add_parser("recover", help="恢复派生计划或从核验备份恢复账本")
+    recover_parser.add_argument("workspace")
+    recover_parser.add_argument("--ledger-backup", help="用户明确授权恢复的完整 JSONL 备份")
 
     efficiency_parser = subparsers.add_parser("efficiency", help="按多维证据评估考研学习效率")
     efficiency_parser.add_argument("workspace")
@@ -152,6 +179,8 @@ def build_parser() -> argparse.ArgumentParser:
     drill_parser.add_argument("workspace")
     drill_parser.add_argument("--subject", required=True)
     drill_parser.add_argument("--topic")
+    drill_parser.add_argument("--question-id", help="精确取回某道到期原题")
+    drill_parser.add_argument("--fresh", action="store_true", help="仅选择未展示的新来源题")
 
     attempt_parser = subparsers.add_parser("attempt", help="记录一道来源题的独立作答结果")
     attempt_parser.add_argument("workspace")
@@ -163,6 +192,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("knowledge_gap", "reasoning", "procedure", "careless", "time_pressure"),
     )
     attempt_parser.add_argument("--note")
+    attempt_parser.add_argument("--mode", choices=("independent", "assisted"), default="independent")
 
     focus_parser = subparsers.add_parser("focus", help="把今日任务变成 if–then 启动协议")
     focus_parser.add_argument("workspace")
@@ -188,6 +218,8 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint_parser.add_argument("--score", required=True, type=float)
     checkpoint_parser.add_argument("--max-score", required=True, type=float)
     checkpoint_parser.add_argument("--minutes", required=True, type=int)
+    checkpoint_parser.add_argument("--scope", choices=("full", "partial"))
+    checkpoint_parser.add_argument("--series", help="用于比较的整卷口径，例如 同一套模考系列-闭卷")
     return parser
 
 
@@ -200,6 +232,7 @@ def dispatch(args: argparse.Namespace):
             args.target,
             args.target_school,
             args.target_major,
+            args.admission_year,
         )
     if args.command == "migrate":
         return migrate(args.workspace)
@@ -209,6 +242,12 @@ def dispatch(args: argparse.Namespace):
             args.target,
             args.target_school,
             args.target_major,
+            args.admission_year,
+        )
+    if args.command == "profile" and args.profile_command == "goals":
+        return set_exam_goals(
+            args.workspace, args.total_target, args.floor, args.remove_floor,
+            args.clear_total_target, args.basis,
         )
     if args.command == "routine" and args.routine_command == "set":
         return set_routine(
@@ -229,6 +268,7 @@ def dispatch(args: argparse.Namespace):
             args.kind,
             args.estimated_hours,
             args.code,
+            args.target_specific,
         )
     if args.command == "topic" and args.topic_command == "add":
         return add_topic(
@@ -264,14 +304,16 @@ def dispatch(args: argparse.Namespace):
         )
     if args.command == "plan":
         return make_plan(args.workspace, "manual")
+    if args.command == "recover":
+        return recover(args.workspace, args.ledger_backup)
     if args.command == "today":
-        return today(args.workspace)
+        return today(args.workspace, read_only=args.read_only)
     if args.command == "replan":
-        return make_plan(args.workspace, "replan")
+        return make_plan(args.workspace, "replan", args.available_minutes, args.main_only)
     if args.command == "log":
         return log_task(args.workspace, args.task_id, args.minutes, args.result, args.error_type, args.note)
     if args.command == "drill":
-        return drill(args.workspace, args.subject, args.topic)
+        return drill(args.workspace, args.subject, args.topic, fresh=args.fresh, question_id=args.question_id)
     if args.command == "attempt":
         return record_attempt(
             args.workspace,
@@ -280,13 +322,14 @@ def dispatch(args: argparse.Namespace):
             args.minutes,
             args.error_type,
             args.note,
+            args.mode,
         )
     if args.command == "focus":
         return set_focus(args.workspace, args.task_id, args.when, args.where, args.obstacle)
     if args.command == "checkpoint":
-        return checkpoint(args.workspace, args.subject, args.score, args.max_score, args.minutes)
+        return checkpoint(args.workspace, args.subject, args.score, args.max_score, args.minutes, args.scope, args.series)
     if args.command == "review":
-        return review(args.workspace)
+        return review(args.workspace, args.through)
     if args.command == "weekly":
         return weekly_review(args.workspace)
     if args.command == "efficiency":

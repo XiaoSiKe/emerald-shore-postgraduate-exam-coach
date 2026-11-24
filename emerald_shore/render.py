@@ -21,22 +21,37 @@ def today_markdown(plan: dict[str, Any], subjects: list[dict[str, Any]]) -> str:
         "## 按顺序完成",
         "",
     ]
+    assessment = plan.get("goal_assessment") or {}
+    main = assessment.get("subjects", {}).get(plan["main_subject_id"], {})
+    if assessment.get("main_basis") in {"below-reference-floor", "near-reference-floor"}:
+        lines.insert(8, f"主攻依据：参考门槛 {main['reference_floor']:g} 分，当前依据 {main['score']:g} 分")
+    if assessment.get("total"):
+        total = assessment["total"]
+        if total["reference_sum"] is not None:
+            lines.insert(8, f"各科最新分数合计 {total['reference_sum']:g} / 目标 {total['target']:g} 分（非同卷总分）")
+        else:
+            lines.insert(8, f"总分目标 {total['target']:g} 分，待补当前目标下各科基线")
     if day_context.get("preferred_place"):
         lines.insert(6, f"建议地点：**{day_context['preferred_place']}**")
     if day_context.get("fixed_commitments"):
         lines.insert(7, f"固定安排（规划时避让）：{'；'.join(day_context['fixed_commitments'])}")
+    status_labels = {"complete": "已完成", "partial": "部分完成", "wrong": "待修正", "skipped": "已跳过"}
     for task in plan["tasks"]:
         subject = subject_names.get(task.get("subject_id"), "综合复习")
+        status = status_labels.get(task.get("status"), "待执行")
         lines.extend(
             [
-                f"{task['order']}. **{task['title']}**",
+                f"{task['order']}. **{task['title']}** · {status}",
                 f"   - 科目：{subject}",
                 f"   - 计划：{task['planned_minutes']} 分钟",
                 f"   - 验收：{task['verification']}",
                 f"   - task-id：`{task['id']}`",
             ]
         )
-    lines.extend(["", "完成后用 `emerald.py log` 记录实际时间与结果。", ""])
+    if plan["tasks"]:
+        lines.extend(["", "完成后用 `emerald.py log` 记录实际时间与结果。", ""])
+    else:
+        lines.extend(["今日休息。到期复习保留在队列里。", ""])
     return "\n".join(lines)
 
 
@@ -70,9 +85,9 @@ def dashboard_markdown(
     ]
     for item in subjects:
         current = item.get("current_score", item["baseline"])
-        lines.append(
-            f"| {item['name']} | {current:g} | {item['target']:g} | {max(0, item['target'] - current):g} | {item['kind']} |"
-        )
+        observed = f"{current:g}" if current is not None else "待校准"
+        gap = f"{max(0, item['target'] - current):g}" if current is not None else "—"
+        lines.append(f"| {item['name']} | {observed} | {item['target']:g} | {gap} | {item['kind']} |")
     lines.append("")
     return "\n".join(lines)
 
@@ -83,10 +98,16 @@ def weekly_markdown(review: dict[str, Any]) -> str:
     errors = review.get("error_counts", {})
     error_text = "、".join(f"{key} {value}" for key, value in sorted(errors.items())) or "无记录"
     efficiency = review.get("efficiency") or {}
+    execution = review.get("execution") or {}
+    closed = execution.get("closed_days") or {}
+    today = execution.get("today") or {}
     lines = [
         f"# 周复盘 · {review['period']['start']}—{review['period']['end']}",
         "",
-        f"- 执行率：{adherence_text}",
+        f"- 已纳入统计的任务完成率：{adherence_text}",
+        f"- 已结束日期：{closed.get('completed', 0)}/{closed.get('tasks', 0)} 项完成，{closed.get('unlogged', 0)} 项无日志",
+        f"- 今天：{today.get('completed', 0)} 项完成，{today.get('pending', 0)} 项仍待记录",
+        f"- 已结束日期的计划留档：{closed.get('days_with_plan', 0)} 天",
         f"- 计划分钟：{review['planned_minutes']}",
         f"- 实际分钟：{review['actual_minutes']}",
         f"- 可验证训练次数：{review['evidence_events']}",
@@ -117,6 +138,8 @@ def efficiency_markdown(report: dict[str, Any]) -> str:
     correct_rate = outcomes.get("correct_rate")
     correct_text = "暂无记录" if correct_rate is None else f"{correct_rate * 100:.0f}%"
     recurring = "、".join(errors.get("recurring_types") or []) or "暂无重复错因"
+    closed = execution["closed_days"]
+    today = execution["today"]
     lines = [
         f"# 考研效率评估 · 最近 {report['days']} 天",
         "",
@@ -124,12 +147,13 @@ def efficiency_markdown(report: dict[str, Any]) -> str:
         "",
         "| 维度 | 观察值 |",
         "|---|---|",
-        f"| 执行 | {execution['completed_tasks']}/{execution['task_records']} 项完成；执行率 {rate_text} |",
+        f"| 执行 | {execution['completed_tasks']}/{execution['planned_tasks']} 项完成；执行率 {rate_text} |",
+        f"| 统计范围 | 已结束日期存档 {closed['days_with_plan']} 天，{closed['unlogged']} 项无日志；今天 {today['pending']} 项仍开放 |",
         f"| 时间 | 计划 {execution['planned_minutes']} 分钟；任务记录 {execution['actual_task_minutes']} 分钟 |",
         f"| 有效证据 | {evidence['verified_events']} 次闭卷/来源题/检查点 |",
         f"| 独立答题 | {outcomes['attempts']} 次；正确率 {correct_text} |",
         f"| 错因复发 | {recurring} |",
-        f"| 检查点 | {report['checkpoints']['count']} 次；可比较趋势 {len(report['checkpoints']['changes'])} 门 |",
+        f"| 检查点 | {report['checkpoints']['count']} 次；可比较趋势 {len(report['checkpoints']['changes'])} 组 |",
         "",
         f"**当前诊断：** {report['diagnosis_label']}",
         "",

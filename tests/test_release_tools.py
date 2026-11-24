@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class ReleaseToolTests(unittest.TestCase):
     def test_primary_documentation_is_chinese_and_skill_first(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("# 🌊 青岸计划·考研冲刺教练", readme)
+        self.assertIn('<h1 align="center">🌊 青岸计划·考研冲刺教练</h1>', readme)
         self.assertIn("一万年太久，只争朝夕！", readme)
         self.assertIn("这是一个 **Agent Skill**", readme)
         self.assertIn("不是独立 App", readme)
